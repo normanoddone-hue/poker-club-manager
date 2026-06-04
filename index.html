@@ -374,7 +374,7 @@
     <div class="section-title">Estadísticas por jugador</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Jugador</th><th>Sesiones</th><th>Compras</th><th>F. Pedidas</th><th>F. Ganadas</th><th>Ratio</th><th>Mayor Gan.</th><th>Mayor Pérd.</th><th>Balance</th></tr></thead>
+        <thead><tr><th>Jugador</th><th>Sesiones</th><th>Compras</th><th>Cajas compradas</th><th>Win Rate</th><th>Mayor Gan.</th><th>Mayor Pérd.</th><th>Balance</th></tr></thead>
         <tbody id="stats-body"></tbody>
       </table>
     </div>
@@ -1745,42 +1745,86 @@ function showPlayerDetail(pid){
   const recHist=state.recompras.filter(r=>r.playerId===pid).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
   document.getElementById('detail-title').textContent=`${p.alias} — Perfil`;
   document.getElementById('modal-player-detail-body').innerHTML=`
-    <div style="display:flex;align-items:center;gap:1.25rem;margin-bottom:1.5rem;">
-      ${avatarHtml(p,70)}
-      <div>
-        <div style="font-size:1.2rem;font-weight:600;">${p.nombre} ${p.apellido}</div>
-        <div style="color:var(--gold);font-size:0.9rem;margin-bottom:0.25rem;">"${p.alias}"</div>
-        ${p.telefono?`<div style="font-size:0.8rem;color:var(--text-muted);">📱 ${p.telefono}</div>`:''}
-        ${p.notas?`<div style="font-size:0.8rem;color:var(--text-dim);margin-top:0.25rem;">${p.notas}</div>`:''}
+    <!-- Header con avatar y datos básicos -->
+    <div style="background:linear-gradient(135deg,var(--bg-panel),rgba(201,168,76,0.05));border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:1.25rem;">
+      ${avatarHtml(p,72)}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:1.15rem;font-weight:700;color:var(--text);">${p.nombre} ${p.apellido}</div>
+        <div style="color:var(--gold);font-size:0.9rem;font-weight:600;margin:2px 0;">"${p.alias}"</div>
+        ${p.telefono?`<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">📱 ${p.telefono}</div>`:''}
+        ${p.notas?`<div style="font-size:0.75rem;color:var(--text-dim);margin-top:4px;font-style:italic;">${p.notas}</div>`:''}
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1.5rem;">
-      <div class="stat-card"><div class="stat-label">Sesiones</div><div class="stat-value gold">${s.sessions}</div></div>
-      <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value ${s.winRate>=50?'green':'red'}">${s.winRate}%</div></div>
-      <div class="stat-card"><div class="stat-label">Compras/div><div class="stat-value red">${s.totalRecompras}</div></div>
-      <div class="stat-card"><div class="stat-label">Balance</div><div class="stat-value ${s.balance>=0?'green':'red'}">${fmt(s.balance,true)}</div></div>
+
+    <!-- Stats grid 2x2 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1.25rem;">
+      <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem;text-align:center;">
+        <div style="font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Sesiones</div>
+        <div style="font-family:'Bebas Neue';font-size:1.6rem;color:var(--gold);">${s.sessions}</div>
+      </div>
+      <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem;text-align:center;">
+        <div style="font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Win Rate</div>
+        <div style="font-family:'Bebas Neue';font-size:1.6rem;color:${s.winRate>=50?'#4ade80':'#f87171'};">${s.winRate}%</div>
+      </div>
+      <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem;text-align:center;">
+        <div style="font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Balance</div>
+        <div style="font-family:'Bebas Neue';font-size:1.5rem;color:${s.balance>=0?'#4ade80':'#f87171'};">${fmt(s.balance,true)}</div>
+      </div>
+      <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem;text-align:center;">
+        <div style="font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Compras</div>
+        <div style="font-family:'Bebas Neue';font-size:1.6rem;color:#f87171;">${s.totalRecompras}</div>
+        ${s.montoRecompras>0?`<div style="font-size:0.68rem;color:var(--text-dim);">${fmt(s.montoRecompras)}</div>`:''}
+      </div>
     </div>
-    ${s.totalRecompras>0?`<div class="section-title">Monto en compras</div>
-    <div style="padding:0.6rem 0;margin-bottom:1rem;font-size:0.9rem;color:#f87171;font-weight:600;">${fmt(s.montoRecompras)} gastados en compras</div>`:''}
-    <div class="section-title">Últimas compras</div>
-    ${recHist.length?recHist.map(r=>{
-      const ses=state.sessions.find(s=>s.id===r.sessionId);
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-        <div><div style="font-size:0.82rem;">${ses?ses.descripcion:'Sesión'}</div><div style="font-size:0.72rem;color:var(--text-dim)">${r.createdAt?r.createdAt.slice(0,10):''}</div>
-        <div class="recompra-chips" style="margin-top:3px;">${chipPillsHtml(r.chips)}</div></div>
-        <div class="money-neg" style="font-size:0.9rem;">-${fmt(recompraTotal(r))}</div>
-      </div>`;
-    }).join(''):'<div style="color:var(--text-dim);font-size:0.875rem;">Sin compras</div>'}
-    <div class="section-title" style="margin-top:1rem;">Últimas sesiones</div>
+
+    <!-- Mejor / Peor noche -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1.25rem;">
+      <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:var(--radius-sm);padding:0.65rem;text-align:center;">
+        <div style="font-size:0.68rem;color:var(--text-dim);margin-bottom:3px;">🏆 Mejor noche</div>
+        <div style="font-weight:700;color:#4ade80;font-size:0.9rem;">${s.maxWin>0?'+'+fmt(s.maxWin):'—'}</div>
+      </div>
+      <div style="background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.2);border-radius:var(--radius-sm);padding:0.65rem;text-align:center;">
+        <div style="font-size:0.68rem;color:var(--text-dim);margin-bottom:3px;">💸 Peor noche</div>
+        <div style="font-weight:700;color:#f87171;font-size:0.9rem;">${s.maxLoss<0?fmt(s.maxLoss):'—'}</div>
+      </div>
+    </div>
+
+    <!-- Últimas sesiones -->
+    <div class="section-title" style="margin-bottom:0.5rem;">Últimas sesiones</div>
+    <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1.25rem;">
     ${sesHist.length?sesHist.map(ses=>{
       const sp=ses.players.find(x=>x.id===pid);
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-        <div><div style="font-size:0.875rem;">${ses.descripcion||'Sesión'}</div><div style="font-size:0.72rem;color:var(--text-dim)">${ses.fecha}</div></div>
-        <div style="text-align:right"><div style="font-size:0.8rem;color:var(--text-muted)">
-        <div class="${Number(sp.monto)>=0?'money-pos':'money-neg'}" style="font-size:0.9rem">${fmtSigned(Number(sp.monto))}</div></div>
+      const m=Number(sp?.monto)||0;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.5rem 0.75rem;">
+        <div>
+          <div style="font-size:0.82rem;font-weight:500;">${ses.descripcion||'Sesión'}</div>
+          <div style="font-size:0.7rem;color:var(--text-dim);">${ses.fecha}</div>
+        </div>
+        <div class="${m>=0?'money-pos':'money-neg'}" style="font-weight:700;font-size:0.9rem;">${fmtSigned(m)}</div>
       </div>`;
-    }).join(''):'<div style="color:var(--text-dim);font-size:0.875rem;">Sin sesiones</div>'}
-    <div style="margin-top:1.25rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+    }).join(''):`<div style="color:var(--text-dim);font-size:0.82rem;padding:0.5rem;">Sin sesiones registradas</div>`}
+    </div>
+
+    <!-- Últimas compras -->
+    <div class="section-title" style="margin-bottom:0.5rem;">Últimas compras</div>
+    <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1.25rem;">
+    ${recHist.length?recHist.map(r=>{
+      const ses=state.sessions.find(s=>s.id===r.sessionId);
+      return `<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.5rem 0.75rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div>
+            <div style="font-size:0.82rem;font-weight:500;">${ses?ses.descripcion:'Sesión'}</div>
+            <div style="font-size:0.7rem;color:var(--text-dim);">${r.createdAt?r.createdAt.slice(0,10):''}</div>
+          </div>
+          <div class="money-neg" style="font-weight:700;font-size:0.9rem;">-${fmt(recompraTotal(r))}</div>
+        </div>
+        <div class="recompra-chips">${chipPillsHtml(r.chips)}</div>
+      </div>`;
+    }).join(''):`<div style="color:var(--text-dim);font-size:0.82rem;padding:0.5rem;">Sin compras registradas</div>`}
+    </div>
+
+    <!-- Acciones -->
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.5rem;border-top:1px solid var(--border);">
       <button class="btn btn-warn btn-sm" onclick="closeModal('modal-player-detail');openPlayerModal('${p.id}')">✏️ Editar jugador</button>
       <button class="btn btn-danger btn-sm" onclick="askDeletePlayer('${p.id}')">🗑 Eliminar jugador</button>
     </div>`;
@@ -2734,13 +2778,12 @@ function renderStats(){
     <tr>
       <td><div style="display:flex;align-items:center;gap:8px;">${avatarHtml(p,28)}<span>${p.alias}</span></div></td>
       <td>${s.sessions}</td>
-      <td class="money-neg">${s.totalRecompras} <span style="font-size:0.72rem;color:var(--text-dim);">(${fmt(s.montoRecompras,true)})</span></td>
-      <td>${s.fichasPedidas.toLocaleString()}</td>
-      <td>${s.fichasGanadas.toLocaleString()}</td>
-      <td><span class="${s.fichasPedidas>0&&s.fichasGanadas/s.fichasPedidas>=1?'money-pos':'money-neg'}">${s.fichasPedidas>0?((s.fichasGanadas/s.fichasPedidas)*100).toFixed(1)+'%':'—'}</span></td>
+      <td class="money-neg">${s.totalRecompras} <span style="font-size:0.72rem;color:var(--text-dim);">(${fmt(s.montoRecompras)})</span></td>
+      <td>${s.totalRecompras>0?cajasFmt(s.montoRecompras)+' cajas':'—'}</td>
+      <td><span class="${s.winRate>=50?'money-pos':'money-neg'}">${s.sessions>0?s.winRate+'%':'—'}</span></td>
       <td class="money-pos">${fmt(s.maxWin)}</td>
       <td class="money-neg">${fmt(s.maxLoss)}</td>
-      <td class="${s.balance>=0?'money-pos':'money-neg'}">${fmt(s.balance)}</td>
+      <td><span class="${s.balance>=0?'money-pos':'money-neg'}">${fmt(s.balance)}</span></td>
     </tr>`).join('');
 }
 
@@ -2750,7 +2793,7 @@ function renderConfig(){
   document.getElementById('cfg-stats-summary').innerHTML=`
     <div style="font-size:0.8rem;color:var(--text-dim);">
       <div>${state.players.length} ${t('players')} · ${state.sessions.length} ${t('sessions')} · ${state.recompras.length} ${t('compras_label').toLowerCase()}</div>
-      <div style="margin-top:0.5rem;font-size:0.7rem;">Datos guardados localmente en este navegador.</div>
+      
     </div>`;
 }
 function saveChipValues(){
@@ -3531,18 +3574,18 @@ function abrirManual(){
   w.document.write('th{background:#f8fafc;padding:7px 10px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:2px solid #e2e8f0;}');
   w.document.write('td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top;}');
   w.document.write('.ft{padding:18px 48px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:20px;}');
-  w.document.write("</style></head><body>");
+  w.document.write('</style></head><body>');
   w.document.write('<button class="no-print" onclick="window.print()">Guardar como PDF</button>');
-  
+
   var sections = [['1','Primeros pasos'],['2','Dashboard'],['3','Jugadores'],['4','Sesiones'],['5','Compras'],['6','Cierre de Partida'],['7','Balance de Fichas'],['8','Reportes PDF y WhatsApp'],['9','Ranking'],['10','Estadisticas'],['11','Escala de Manos'],['12','Resumen del anio'],['13','WhatsApp Convocatoria'],['14','Configuracion'],['15','Datos y respaldo']];
-  
+
   w.document.write('<div class="cover"><div style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c9a84c;margin-bottom:10px;">&#9824; ' + clubName + '</div>');
   w.document.write('<div style="font-size:38px;font-weight:900;color:#fff;line-height:1.1;">Manual del Usuario</div>');
   w.document.write('<div style="font-size:16px;color:#94a3b8;margin-top:6px;">Poker Club Manager</div>');
   w.document.write('<div style="width:50px;height:3px;background:#c9a84c;margin:18px 0;"></div>');
   w.document.write('<div style="font-size:13px;color:#94a3b8;">Guia completa: jugadores, sesiones, compras, cierres, balance de fichas y reportes.</div>');
-  w.document.write('<div style="margin-top:48px;font-size:12px;color:#475569;">Version 3.2 - ' + new Date().toLocaleDateString('es-PY',{month:'long',year:'numeric'}) + '</div></div>');
-  
+  w.document.write('<div style="margin-top:48px;font-size:12px;color:#475569;">Version 3.3 - ' + new Date().toLocaleDateString('es-PY',{month:'long',year:'numeric'}) + '</div></div>');
+
   w.document.write('<div class="toc"><h2>Contenido</h2>');
   for(var i=0;i<sections.length;i++){
     w.document.write('<div class="toc-item"><span class="toc-num">'+sections[i][0]+'.</span><span>'+sections[i][1]+'</span></div>');
@@ -3551,37 +3594,37 @@ function abrirManual(){
 
   function sec(n,t,body){ w.document.write('<div class="sec"><div class="s-hdr"><div class="s-n">'+n+'</div><div class="s-t">'+t+'</div></div>'+body+'</div>'); }
 
-  sec('1','Primeros pasos','<p>Funciona en el navegador sin instalacion ni conexion a internet. Datos guardados localmente.</p><h3>Flujo recomendado</h3><ol><li>Configuracion - nombre del club</li><li>Jugadores - registrar integrantes</li><li>Al jugar - crear Sesion con moneda y valor de fichas</li><li>Durante el juego - registrar Compras por jugador</li><li>Al terminar - Cierre de Partida por cada jugador</li><li>Verificar Balance de fichas</li></ol><div class="tip">Recomendamos Chrome o Edge.</div>');
+  sec('1','Primeros pasos','<p>Funciona en el navegador sin instalacion. Los datos se guardan en la nube (Supabase) y se sincronizan en tiempo real entre todos los dispositivos.</p><h3>Flujo recomendado</h3><ol><li>Configuracion - nombre del club</li><li>Jugadores - registrar integrantes</li><li>Al jugar - crear Sesion con moneda y valor de fichas</li><li>Durante el juego - registrar Compras por jugador</li><li>Al terminar - Cierre de Partida por cada jugador</li><li>Verificar Balance de fichas</li></ol><div class="tip">Recomendamos Chrome o Edge.</div>');
 
-  sec('2','Dashboard','<p>Resumen: sesiones, jugadores, compras, grafico de ganancias, calendario y Top 5. Clic en un dia del calendario filtra la pantalla Sesiones.</p>');
+  sec('2','Dashboard','<p>Resumen del club: sesiones, jugadores, compras, grafico de ganancias, calendario y Top 5. Clic en un dia del calendario filtra la pantalla Sesiones.</p>');
 
-  sec('3','Jugadores','<ol><li>+ Nuevo Jugador - Nombre, Apellido, Alias (obligatorios)</li><li>Telefono, foto, notas (opcionales)</li><li>Guardar Jugador</li></ol><p>Clic en una tarjeta para ver perfil completo con estadisticas, sesiones y compras.</p>');
+  sec('3','Jugadores','<ol><li>+ Nuevo Jugador - Nombre, Apellido, Alias (obligatorios)</li><li>Telefono, foto, notas (opcionales)</li><li>Guardar Jugador</li></ol><p>Clic en una tarjeta muestra el perfil completo con: stats (sesiones, win rate, balance, compras), mejor y peor noche, historial de sesiones y compras recientes.</p>');
 
-  sec('4','Sesiones','<p>Cada sesion tiene su propia moneda y valores de fichas.</p><h3>Crear</h3><ol><li>+ Nueva Sesion - fecha, descripcion, lugar, duracion</li><li>Seleccionar moneda (Gs, $, EUR, R$, $AR)</li><li>Definir valor de cada ficha en esa moneda</li><li>Definir valor de 1 caja (independiente de la ficha gris)</li><li>Agregar jugadores - Guardar Sesion</li></ol><div class="info">Moneda y valores quedan fijos en la sesion para siempre.</div><h3>Acciones</h3><table><tr><th>Boton</th><th>Accion</th></tr><tr><td>Ver</td><td>Detalle con resultados, balance de fichas y boton editar cierre por jugador</td></tr><tr><td>Editar</td><td>Modificar datos de la sesion</td></tr><tr><td>WA</td><td>Resumen por WhatsApp</td></tr><tr><td>PDF</td><td>Reporte PDF ejecutivo</td></tr><tr><td>Eliminar</td><td>Eliminar sesion</td></tr></table>');
+  sec('4','Sesiones','<p>Cada sesion tiene su propia moneda y valores de fichas.</p><h3>Crear</h3><ol><li>+ Nueva Sesion - fecha, descripcion, lugar, duracion</li><li>Seleccionar moneda (Gs, $, EUR, R$, $AR)</li><li>Definir valor de cada ficha en esa moneda</li><li>Definir valor de 1 caja (independiente de la ficha gris)</li><li>Agregar jugadores - Guardar Sesion</li></ol><div class="info">Moneda y valores quedan fijos en la sesion para siempre.</div><h3>Acciones</h3><table><tr><th>Boton</th><th>Accion</th></tr><tr><td>Ver</td><td>Detalle con resultados, balance de fichas y boton editar cierre por jugador</td></tr><tr><td>Editar</td><td>Modificar datos de la sesion</td></tr><tr><td>WA</td><td>Resumen por WhatsApp en la moneda de la sesion</td></tr><tr><td>PDF</td><td>Reporte PDF ejecutivo</td></tr><tr><td>Eliminar</td><td>Eliminar sesion</td></tr></table>');
 
-  sec('5','Compras','<ol><li>+ Registrar Compra - seleccionar sesion (carga fichas y moneda automaticamente)</li><li>Seleccionar jugador - ingresar fichas por color</li><li>Total calculado en la moneda de la sesion - Guardar</li></ol><div class="tip">El total se guarda fijo al momento de la compra.</div>');
+  sec('5','Compras','<ol><li>+ Registrar Compra - seleccionar sesion (carga fichas y moneda automaticamente)</li><li>Seleccionar jugador - ingresar fichas por color</li><li>Total calculado en la moneda de la sesion - Guardar</li></ol><div class="tip">El total se guarda fijo al momento de la compra. Cambios futuros en los valores no afectan registros anteriores.</div>');
 
   sec('6','Cierre de Partida','<h3>Hacer un cierre</h3><ol><li>Cierre de Partida (desde Sesiones o Compras)</li><li>Seleccionar jugador y sesion</li><li>Ingresar fichas en mano al terminar - por color</li><li>Calcular - resultado = valor fichas finales menos compras pagadas</li><li>Guardar en sesion</li></ol><div class="warn">Al guardar el cierre del ultimo jugador aparece automaticamente el Balance de Fichas.</div><h3>Editar un cierre</h3><ol><li>Sesiones - Ver - boton editar al lado del jugador</li><li>Modificar fichas - Calcular - Guardar</li></ol>');
 
-  sec('7','Balance de Fichas','<p>Controla que las fichas compradas y devueltas cuadren exactamente, color por color.</p><ul><li>Compradas = suma de todas las compras de la sesion por color</li><li>Devueltas = suma de los cierres de todos los jugadores por color</li><li>Si hay diferencia - muestra cuantas fichas faltan o sobran y el monto</li></ul><table><tr><th>Indicador</th><th>Significado</th></tr><tr><td>OK</td><td>Todo cuadra</td></tr><tr><td>Faltan N</td><td>Se devolvieron menos fichas de ese color</td></tr><tr><td>Sobran N</td><td>Se devolvieron mas fichas de ese color</td></tr></table><p>Aparece automaticamente al cerrar el ultimo jugador, y manualmente desde Sesiones - Ver - boton Balance fichas.</p><div class="info">Solo funciona con Cierre de Partida con conteo de fichas, no con montos manuales.</div>');
+  sec('7','Balance de Fichas','<p>Controla que las fichas compradas y devueltas cuadren exactamente, color por color.</p><ul><li>Compradas = suma de todas las compras de la sesion por color</li><li>Devueltas = suma de los cierres de todos los jugadores por color</li></ul><table><tr><th>Indicador</th><th>Significado</th></tr><tr><td>OK</td><td>Todo cuadra - conteo correcto</td></tr><tr><td>Faltan N</td><td>Se devolvieron menos fichas de ese color</td></tr><tr><td>Sobran N</td><td>Se devolvieron mas fichas de ese color</td></tr></table><p>Aparece automaticamente al cerrar el ultimo jugador, y manualmente desde Sesiones - Ver - boton Balance fichas.</p><div class="info">Solo funciona con Cierre de Partida con conteo de fichas, no con montos manuales.</div>');
 
-  sec('8','Reportes PDF y WhatsApp','<p>Desde Sesiones - boton PDF o WA. Montos en la moneda de la sesion.</p><h3>Columnas del reporte de sesion</h3><table><tr><th>Columna</th><th>Descripcion</th></tr><tr><td>Jugador</td><td>Nombre con medalla para los 3 primeros</td></tr><tr><td>Compras</td><td>Total gastado en fichas</td></tr><tr><td>Devuelto</td><td>Valor de las fichas devueltas al terminar (Compras + Resultado)</td></tr><tr><td>Resultado</td><td>Ganancia o perdida neta</td></tr></table><div class="tip">Logica transparente: compraste X, devolviste Y, resultado es Y menos X.</div>');
+  sec('8','Reportes PDF y WhatsApp','<p>Desde Sesiones - boton PDF o WA. Montos en la moneda de la sesion, sin abreviaturas.</p><h3>Columnas del reporte de sesion</h3><table><tr><th>Columna</th><th>Descripcion</th></tr><tr><td>Jugador</td><td>Nombre con medalla para los 3 primeros</td></tr><tr><td>Compras</td><td>Total gastado en fichas</td></tr><tr><td>Devuelto</td><td>Valor de las fichas devueltas al terminar (Compras + Resultado)</td></tr><tr><td>Resultado</td><td>Ganancia o perdida neta</td></tr></table><div class="tip">Logica transparente: compraste X, devolviste Y, resultado es Y menos X.</div>');
 
-  sec('9','Ranking','<table><tr><th>Pestania</th><th>Criterio</th></tr><tr><td>Balance</td><td>Mayor ganancia total acumulada</td></tr><tr><td>Win Rate</td><td>Mayor porcentaje de sesiones ganadas</td></tr><tr><td>Compras</td><td>Mayor gasto en fichas</td></tr></table>');
+  sec('9','Ranking','<table><tr><th>Pestania</th><th>Criterio</th></tr><tr><td>Balance</td><td>Mayor ganancia total acumulada</td></tr><tr><td>Win Rate</td><td>Mayor porcentaje de sesiones ganadas</td></tr><tr><td>Compras</td><td>Mayor gasto en fichas (cajas y monto)</td></tr></table>');
 
-  sec('10','Estadisticas','<ul><li>Distribucion de ganancias por jugador (torta)</li><li>Compras por tipo de ficha (barras)</li><li>Tabla completa con balance, mejor/peor noche</li></ul>');
+  sec('10','Estadisticas','<p>Graficos de distribucion de ganancias y compras por tipo de ficha.</p><h3>Tabla Estadisticas por jugador</h3><table><tr><th>Columna</th><th>Descripcion</th></tr><tr><td>Jugador</td><td>Alias del jugador</td></tr><tr><td>Sesiones</td><td>Total de partidas jugadas</td></tr><tr><td>Compras</td><td>Cantidad de compras y monto total</td></tr><tr><td>Cajas compradas</td><td>Equivalente en cajas del monto gastado</td></tr><tr><td>Win Rate</td><td>Porcentaje de sesiones ganadas</td></tr><tr><td>Mejor noche</td><td>Ganancia mas alta en una sola sesion</td></tr><tr><td>Peor noche</td><td>Perdida mas grande en una sola sesion</td></tr><tr><td>Balance</td><td>Ganancia o perdida total acumulada (montos completos, sin abreviatura)</td></tr></table>');
 
   sec('11','Escala de Manos','<table><tr><th>Pos.</th><th>Mano</th><th>Descripcion</th></tr><tr><td>1</td><td>Royal Flush</td><td>A K Q J 10 mismo palo</td></tr><tr><td>2</td><td>Escalera de Color</td><td>5 consecutivas mismo palo</td></tr><tr><td>3</td><td>Poker</td><td>Cuatro cartas iguales</td></tr><tr><td>4</td><td>Full House</td><td>Trio + par</td></tr><tr><td>5</td><td>Color</td><td>5 del mismo palo</td></tr><tr><td>6</td><td>Escalera</td><td>5 consecutivas distintos palos</td></tr><tr><td>7</td><td>Trio</td><td>Tres cartas iguales</td></tr><tr><td>8</td><td>Doble Par</td><td>Dos pares distintos</td></tr><tr><td>9</td><td>Par</td><td>Dos cartas iguales</td></tr><tr><td>10</td><td>Carta Alta</td><td>Sin combinacion</td></tr></table>');
 
-  sec('12','Resumen del anio','<p>Reporte anual automatico con premios y ranking. Exportar por WhatsApp o PDF.</p><table><tr><th>Premio</th><th>Criterio</th></tr><tr><td>Campeon</td><td>Mayor balance acumulado</td></tr><tr><td>Mas victorias</td><td>Mayor sesiones ganadas</td></tr><tr><td>Mayor Financiador</td><td>Mayor gasto en fichas</td></tr><tr><td>Mayor noche</td><td>Ganancia mas alta en una sesion</td></tr><tr><td>Peor noche</td><td>Perdida mas grande en una sesion</td></tr></table>');
+  sec('12','Resumen del anio','<p>Reporte anual automatico con premios y ranking. Exportar por WhatsApp o PDF.</p><table><tr><th>Premio</th><th>Criterio</th></tr><tr><td>Campeon</td><td>Mayor balance acumulado</td></tr><tr><td>Mas victorias</td><td>Mayor sesiones ganadas</td></tr><tr><td>Mayor Financiador</td><td>Mayor gasto en fichas</td></tr><tr><td>Mejor noche</td><td>Ganancia mas alta en una sesion</td></tr><tr><td>Peor noche</td><td>Perdida mas grande en una sesion</td></tr></table>');
 
   sec('13','WhatsApp - Convocatoria','<p>Desde Sesiones - Convocar por WhatsApp. Completar fecha, hora, lugar y seleccionar jugadores.</p><table><tr><th>Tab</th><th>Descripcion</th></tr><tr><td>Grupo</td><td>Enlace del grupo - mensaje se copia automaticamente</td></tr><tr><td>Individual</td><td>Boton por jugador - abre chat con mensaje pre-cargado</td></tr><tr><td>Copiar</td><td>Copia al portapapeles</td></tr></table>');
 
   sec('14','Configuracion','<p>Nombre del club (aparece en PDF, WA y resumen anual).</p><div class="info">La moneda y los valores de fichas se definen al crear cada sesion, no globalmente.</div>');
 
-  sec('15','Datos y respaldo','<p>Datos guardados en localStorage del navegador. No se envia nada a internet.</p><div class="warn">Si borras el cache podes perder los datos. Hace respaldos regularmente.</div><h3>Exportar / Importar / Resetear</h3><p>Configuracion - Exportar (JSON) | Importar (JSON) | Resetear todo (irreversible).</p><div class="tip">Exporta despues de cada sesion.</div>');
+  sec('15','Datos y respaldo','<p>Los datos se guardan en la nube (Supabase) y se sincronizan automaticamente entre dispositivos.</p><div class="tip">El indicador de estado en la barra lateral muestra: verde = sincronizado, amarillo = guardando, rojo = error de conexion.</div><h3>Exportar / Importar / Resetear</h3><p>Configuracion - Exportar (JSON) | Importar (JSON) | Resetear todo (irreversible).</p><div class="warn">Exporta un backup regularmente como respaldo adicional.</div>');
 
-  w.document.write('<div class="ft"><span>Manual - ' + clubName + ' - Poker Club Manager v3.2</span><span>' + new Date().toLocaleDateString('es-PY',{day:'2-digit',month:'2-digit',year:'numeric'}) + '</span></div>');
+  w.document.write('<div class="ft"><span>Manual - ' + clubName + ' - Poker Club Manager v3.3</span><span>' + new Date().toLocaleDateString('es-PY',{day:'2-digit',month:'2-digit',year:'numeric'}) + '</span></div>');
   w.document.write('</body></html>');
   w.document.close();
 }
