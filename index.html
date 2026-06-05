@@ -674,6 +674,22 @@
 </div>
 
 </main>
+<footer id="app-footer" style="margin-left:220px;padding:0.5rem 2rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;background:var(--bg);">
+  <div style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text-dim);">
+    <span id="footer-cloud-dot" style="width:7px;height:7px;border-radius:50%;background:#6b7280;flex-shrink:0;transition:background 0.3s;"></span>
+    <span id="footer-cloud-label" style="color:var(--text-dim);">Conectando...</span>
+  </div>
+  <div style="font-size:0.72rem;color:var(--text-dim);text-align:center;">
+    ♠ <span id="footer-club-name" style="color:var(--gold);font-weight:600;"></span> · v1.0
+  </div>
+
+</footer>
+<style>
+  .app { display:flex; flex-direction:column; min-height:100vh; }
+  .main { flex:1; }
+  #app-footer { margin-left:220px; }
+  @media(max-width:768px){ #app-footer { margin-left:0; padding:0.5rem 1rem; } }
+</style>
 </div>
 
 <!-- MODAL: PLAYER -->
@@ -1029,11 +1045,15 @@ function scheduleSave(){
 }
 
 function setCloudStatus(status, label){
-  const dot = document.getElementById('cloud-dot');
-  const lbl = document.getElementById('cloud-label');
   const colors = {ok:'#4ade80', saving:'#fbbf24', error:'#f87171', offline:'#6b7280'};
-  if(dot) dot.style.background = colors[status]||'#6b7280';
-  if(lbl) lbl.textContent = label;
+  ['cloud-dot','footer-cloud-dot'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.background = colors[status]||'#6b7280';
+  });
+  ['cloud-label','footer-cloud-label'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = label;
+  });
 }
 
 function setupRealtime(){
@@ -2869,7 +2889,7 @@ function saveChipValues(){
   // Si estamos en fichas, re-renderizar para reflejar cambios
   if(document.getElementById('page-fichas').classList.contains('active')) renderFichas();
 }
-function saveConfig(){ state.config.name=document.getElementById('cfg-name').value; save(); showToast('Guardado'); }
+function saveConfig(){ state.config.name=document.getElementById('cfg-name').value; save(); updateFooter(); showToast('Guardado'); }
 function exportData(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
@@ -3689,6 +3709,12 @@ function abrirManual(){
   w.document.close();
 }
 load();
+// Update footer club name
+function updateFooter(){
+  const nameEl = document.getElementById('footer-club-name');
+  if(nameEl) nameEl.textContent = state.config.name || 'La Catedral del Poker';
+}
+
 // ========== CLOUD INIT ==========
 (async function initCloud(){
   try {
@@ -3696,6 +3722,7 @@ load();
     await cloudLoad();
     _syncEnabled = true;
     setupRealtime();
+    updateFooter();
     renderDashboard();
     updateNavLabels();
   } catch(e) {
