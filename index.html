@@ -2109,11 +2109,11 @@ function saveSession(){
   if(!sessionTempPlayers.length){showToast('Agregá al menos un jugador');return;}
   const currency = document.getElementById('s-currency').value || getCurr();
   const currSym = (CURRENCIES[currency]||CURRENCIES['PYG']).symbol;
-  // Save chip values for this session
+  // Save chip values for this session - ensure they are integers
   const sessionChipValues = {};
   chipValues().forEach(c=>{
     const el = document.getElementById('s-chip-'+c.id);
-    sessionChipValues[c.id] = el ? (Number(el.value)||c.value) : c.value;
+    sessionChipValues[c.id] = el ? Math.round(Number(el.value)||c.value) : c.value;
   });
   const data = {
     fecha,
@@ -2393,7 +2393,12 @@ function getSessionChipValues(sid){
   // Returns chip values array for a specific session, falls back to global
   const s = sid ? state.sessions.find(x=>x.id===sid) : null;
   if(s && s.chipValues){
-    return chipValues().map(c=>({...c, value: s.chipValues[c.id]||c.value}));
+    return chipValues().map(c=>{
+      const saved = s.chipValues[c.id];
+      // Parse as number, fall back to global only if undefined/null
+      const v = (saved !== undefined && saved !== null) ? Number(saved) : c.value;
+      return {...c, value: v || c.value};
+    });
   }
   return chipValues();
 }
