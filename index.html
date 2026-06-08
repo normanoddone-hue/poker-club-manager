@@ -412,7 +412,10 @@
     <div id="recompras-list"></div>
     <div class="chip-total-row" style="margin-top:1rem;">
       <span style="font-size:0.85rem;color:var(--text-muted);">Total compras filtradas:</span>
-      <span id="recompras-total-filtered" style="font-family:'Bebas Neue';font-size:1.4rem;color:var(--gold);">0</span>
+      <div style="text-align:right;">
+        <div id="recompras-total-filtered" style="font-family:'Bebas Neue';font-size:1.4rem;color:var(--gold);">0</div>
+        <div id="recompras-total-cajas" style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2319,6 +2322,14 @@ function renderRecompras(){
   const totalCi = firstSid ? getSessionCurrInfo(firstSid) : currInfo();
   document.getElementById('recompras-total-filtered').textContent =
     totalCi.symbol+' '+total.toLocaleString(totalCi.locale,{minimumFractionDigits:totalCi.decimals,maximumFractionDigits:totalCi.decimals});
+  // Show cajas
+  const cajasEl = document.getElementById('recompras-total-cajas');
+  if(cajasEl){
+    const sfid = document.getElementById('recompra-filter-session').value;
+    const grayVal = sfid ? (getSessionChipValues(sfid).find(c=>c.id==='gray')?.value || cajasValue()) : cajasValue();
+    const cajas = grayVal > 0 ? total / grayVal : 0;
+    cajasEl.textContent = cajas > 0 ? '📦 ' + (cajas%1===0 ? cajas.toFixed(0) : cajas.toFixed(1)) + ' cajas' : '';
+  }
   const wrap=document.getElementById('recompras-list');
   if(!list.length){wrap.innerHTML=`<div class="empty" style="padding:2rem;"><div class="empty-icon" style="font-size:2rem;">⬤</div><div class="empty-text">Sin compras</div></div>`;return;}
   wrap.innerHTML=list.map(r=>{
@@ -2369,6 +2380,7 @@ function initRecompraModal(rid){
     document.getElementById('modal-recompra-title').innerHTML='Editar Compra <span class=\"edit-badge\">✏️ editando</span>';
     document.getElementById('btn-save-recompra').textContent='Guardar Cambios';
   } else {
+    chipValues().forEach(c=>rcCounts[c.id]=0);
     document.getElementById('modal-recompra-title').textContent='Registrar Compra';
     document.getElementById('btn-save-recompra').textContent='Registrar Compra';
   }
@@ -2384,20 +2396,25 @@ function initRecompraModal(rid){
   if(rid){
     const r=state.recompras.find(x=>x.id===rid);
     if(r){ rcp.value=r.playerId; rcs.value=r.sessionId; }
+  } else {
+    // Auto-select most recent session
+    if(state.sessions.length > 0){
+      const recent = [...state.sessions].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha))[0];
+      rcs.value = recent.id;
+    }
   }
+  // Always rebuild chip counters using the selected session's values
   buildRCChipCounters(rcs.value);
   updateRCTotal();
   document.getElementById('modal-recompra').classList.add('open');
 }
 function getSessionChipValues(sid){
-  // Returns chip values array for a specific session, falls back to global
   const s = sid ? state.sessions.find(x=>x.id===sid) : null;
   if(s && s.chipValues){
     return chipValues().map(c=>{
       const saved = s.chipValues[c.id];
-      // Parse as number, fall back to global only if undefined/null
-      const v = (saved !== undefined && saved !== null) ? Number(saved) : c.value;
-      return {...c, value: v || c.value};
+      const v = (saved !== undefined && saved !== null) ? Math.round(Number(saved)) : c.value;
+      return {...c, value: v > 0 ? v : c.value};
     });
   }
   return chipValues();
@@ -2480,7 +2497,7 @@ function saveRecompra(){
     const r={id:'r_'+Date.now(),playerId:pid,sessionId:sid,chips:JSON.parse(JSON.stringify(rcCounts)),total:sessionTotal,createdAt:new Date().toISOString()};
     state.recompras.push(r); save(); closeModal('modal-recompra');
     const p=state.players.find(x=>x.id===pid);
-    showToast(`Compra de ${p?p.alias:'?'}: ${fmt(chipValue(r.chips))}`);
+    showToast(`Compra de ${p?p.alias:'?'}: ${fmt(recompraTotal(r))}`);
   }
   renderFichas();
 }
@@ -2610,7 +2627,7 @@ function calcularCierre(){
 
   // Total pagado en recompras por este jugador en esta sesión
   const recomprasJug = state.recompras.filter(r=>r.playerId===pid && r.sessionId===sid);
-  const totalRecompras = recomprasJug.reduce((a,r)=>a+chipValue(r.chips),0);
+  const totalRecompras = recomprasJug.reduce((a,r)=>a+recompraTotal(r),0);
 
   // Cálculo: ganancia = fichas en mano - recompras pagadas
   // (buy-in inicial ya está en recompras si se registró, o puede no estar; mostramos ambas vistas)
@@ -3372,8 +3389,8 @@ function calcAnioData(year){
       if(m>maxWin) maxWin=m;
       if(m<maxLoss) maxLoss=m;
     });
-    const cajasCompradas = comprasAnio.filter(r=>r.playerId===p.id).reduce((a,r)=>a+chipValue(r.chips),0)/cajasValue();
-    const montoCompras   = comprasAnio.filter(r=>r.playerId===p.id).reduce((a,r)=>a+chipValue(r.chips),0);
+    const cajasCompradas = comprasAnio.filter(r=>r.playerId===p.id).reduce((a,r)=>a+recompraTotal(r),0)/cajasValue();
+    const montoCompras   = comprasAnio.filter(r=>r.playerId===p.id).reduce((a,r)=>a+recompraTotal(r),0);
     return { p, sessCount, wins, losses, balance,
       maxWin: maxWin===-Infinity?0:maxWin,
       maxLoss: maxLoss===Infinity?0:maxLoss,
@@ -3391,7 +3408,7 @@ function calcAnioData(year){
   })[0];
 
   // Totales
-  const totalComprasMonto = comprasAnio.reduce((a,r)=>a+chipValue(r.chips),0);
+  const totalComprasMonto = comprasAnio.reduce((a,r)=>a+recompraTotal(r),0);
   const totalCajas = toCajas(totalComprasMonto);
   const totalSesiones = sesiones.length;
 
