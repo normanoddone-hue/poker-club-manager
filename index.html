@@ -683,7 +683,7 @@
     <span id="footer-cloud-label" style="color:var(--text-dim);">Conectando...</span>
   </div>
   <div style="font-size:0.72rem;color:var(--text-dim);text-align:center;">
-    ♠ <span id="footer-club-name" style="color:var(--gold);font-weight:600;"></span> · v2.0
+    ♠ <span id="footer-club-name" style="color:var(--gold);font-weight:600;"></span> · v1.0
   </div>
 
 </footer>
@@ -989,6 +989,7 @@
     <div class="modal-header"><div class="modal-title" id="sesdet-title">Detalle de Sesión</div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
         <button id="btn-fichas-balance" class="btn btn-ghost btn-sm" onclick="showFichasBalanceFromDetail()" style="display:none;">⚖️ Balance fichas</button>
+        <button id="btn-pagos" class="btn btn-green btn-sm" onclick="showPagosFromDetail()" style="display:none;">💸 ¿Quién paga?</button>
         <button class="close-btn" onclick="closeModal('modal-session-detail')">✕</button>
       </div>
     </div>
@@ -2206,14 +2207,20 @@ function showSessionDetail(sid){
   const s=state.sessions.find(x=>x.id===sid); if(!s) return;
   const recompras=state.recompras.filter(r=>r.sessionId===sid);
   document.getElementById('sesdet-title').textContent=`${s.descripcion} — ${s.fecha}`;
-  // Store current session id for balance button
-  document.getElementById('btn-fichas-balance')._sid = sid;
+  // Show pagos button if there are results
+  const pagosBtn = document.getElementById('btn-pagos');
+  if(pagosBtn){
+    const hasResults = s.players.some(p => Number(p.monto) !== 0);
+    pagosBtn.style.display = hasResults ? 'inline-flex' : 'none';
+    pagosBtn._sid = sid;
+  }
 
   // Show/hide balance button based on whether any chips have been used
   const hasRecompras = state.recompras.some(r=>r.sessionId===sid);
   const hasCierres = s.cierreChips && Object.keys(s.cierreChips).length>0;
   const balBtn = document.getElementById('btn-fichas-balance');
   if(balBtn){
+    balBtn._sid = sid;
     balBtn.style.display = (hasRecompras||hasCierres) ? 'inline-flex' : 'none';
     // Color based on balance status
     if(hasRecompras && hasCierres){
@@ -2847,6 +2854,97 @@ function showFichasBalanceFromDetail(){
   const result = calcFichasBalance(sid);
   if(!result) return;
   showFichasBalanceModal(sid, result.diffs, result.totalDiffMonto, result.allOk);
+}
+
+function showPagosFromDetail(){
+  const btn = document.getElementById('btn-pagos');
+  const sid = btn ? btn._sid : null;
+  if(!sid) return;
+
+  const session = state.sessions.find(x=>x.id===sid);
+  if(!session) return;
+
+  const ci = getSessionCurrInfo(sid);
+  const fmtM = n => ci.symbol+' '+Math.abs(n).toLocaleString(ci.locale||'es-PY',{minimumFractionDigits:ci.decimals,maximumFractionDigits:ci.decimals});
+
+  // Build ganadores and perdedores
+  const ganadores = session.players
+    .filter(p => Number(p.monto) > 0)
+    .map(p => ({ nombre: p.nombre, monto: Number(p.monto) }))
+    .sort((a,b) => b.monto - a.monto);
+
+  const perdedores = session.players
+    .filter(p => Number(p.monto) < 0)
+    .map(p => ({ nombre: p.nombre, monto: Math.abs(Number(p.monto)) }))
+    .sort((a,b) => b.monto - a.monto);
+
+  if(!ganadores.length || !perdedores.length){
+    showToast('No hay resultados suficientes para calcular pagos');
+    return;
+  }
+
+  // Minimize transfers algorithm
+  const G = ganadores.map(x=>({...x}));
+  const P = perdedores.map(x=>({...x}));
+  const transfers = [];
+
+  let gi = 0, pi = 0;
+  while(gi < G.length && pi < P.length){
+    const amount = Math.min(G[gi].monto, P[pi].monto);
+    if(amount > 0){
+      transfers.push({ from: P[pi].nombre, to: G[gi].nombre, amount });
+    }
+    G[gi].monto -= amount;
+    P[pi].monto -= amount;
+    if(G[gi].monto <= 0) gi++;
+    if(P[pi].monto <= 0) pi++;
+  }
+
+  // Build modal
+  const existing = document.getElementById('modal-pagos');
+  if(existing) existing.remove();
+
+  const rows = transfers.map((t,i) => `
+    <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);">
+      <div style="width:24px;height:24px;border-radius:50%;background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.3);display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#f87171;font-weight:700;flex-shrink:0;">${i+1}</div>
+      <div style="flex:1;">
+        <span style="color:#f87171;font-weight:600;">${t.from}</span>
+        <span style="color:var(--text-dim);margin:0 6px;">→</span>
+        <span style="color:#4ade80;font-weight:600;">${t.to}</span>
+      </div>
+      <div style="font-family:'Bebas Neue';font-size:1.2rem;color:var(--gold);">${fmtM(t.amount)}</div>
+    </div>`).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-pagos';
+  modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:480px;max-height:85vh;display:flex;flex-direction:column;">
+      <div class="modal-header" style="background:linear-gradient(135deg,rgba(74,222,128,0.08),rgba(74,222,128,0.03));flex-shrink:0;">
+        <div class="modal-title" style="color:#4ade80;">💸 ¿Quién le paga a quién?</div>
+        <button class="close-btn" onclick="document.getElementById('modal-pagos').remove()">✕</button>
+      </div>
+      <div class="modal-body" style="overflow-y:auto;flex:1;">
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem;">
+          ${session.descripcion} · ${session.fecha} · <strong>${transfers.length} transferencia${transfers.length!==1?'s':''}</strong>
+        </p>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          ${rows}
+        </div>
+        <div style="margin-top:0.75rem;padding:0.6rem 0.75rem;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:0.85rem;color:var(--text-muted);">Total a distribuir:</span>
+          <span style="font-family:'Bebas Neue';font-size:1.4rem;color:var(--gold);">${fmtM(transfers.reduce((a,t)=>a+t.amount,0))}</span>
+        </div>
+        <div style="margin-top:1rem;padding:0.6rem 0.75rem;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:var(--radius-sm);font-size:0.78rem;color:var(--text-dim);">
+          💡 Algoritmo de mínimas transferencias — cada pago cubre al máximo posible antes de pasar al siguiente.
+        </div>
+      </div>
+      <div class="modal-footer" style="flex-shrink:0;">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-pagos').remove()">Cerrar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
 }
 
 // ========== STATS ==========
@@ -3679,7 +3777,7 @@ function abrirManual(){
   w.document.write('</style></head><body>');
   w.document.write('<button class="no-print" onclick="window.print()">Guardar como PDF</button>');
 
-  var sections = [['1','Primeros pasos'],['2','Dashboard'],['3','Jugadores'],['4','Sesiones'],['5','Compras'],['6','Cierre de Partida'],['7','Balance de Fichas'],['8','Reportes PDF y WhatsApp'],['9','Ranking'],['10','Estadisticas'],['11','Escala de Manos'],['12','Resumen del anio'],['13','WhatsApp Convocatoria'],['14','Configuracion'],['15','Datos y respaldo']];
+  var sections = [['1','Primeros pasos'],['2','Dashboard'],['3','Jugadores'],['4','Sesiones'],['5','Compras'],['6','Cierre de Partida'],['7','Balance de Fichas'],['8','Reportes PDF y WhatsApp'],['9','Quien paga a quien'],['10','Ranking'],['11','Estadisticas'],['12','Escala de Manos'],['13','Resumen del anio'],['14','WhatsApp Convocatoria'],['15','Configuracion'],['16','Datos y respaldo']];
 
   w.document.write('<div class="cover"><div style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c9a84c;margin-bottom:10px;">&#9824; ' + clubName + '</div>');
   w.document.write('<div style="font-size:38px;font-weight:900;color:#fff;line-height:1.1;">Manual del Usuario</div>');
@@ -3710,23 +3808,25 @@ function abrirManual(){
 
   sec('7','Balance de Fichas','<p>Controla que las fichas compradas y devueltas cuadren exactamente, color por color.</p><ul><li>Compradas = suma de todas las compras de la sesion por color</li><li>Devueltas = suma de los cierres de todos los jugadores por color</li></ul><table><tr><th>Indicador</th><th>Significado</th></tr><tr><td>OK</td><td>Todo cuadra - conteo correcto</td></tr><tr><td>Faltan N</td><td>Se devolvieron menos fichas de ese color</td></tr><tr><td>Sobran N</td><td>Se devolvieron mas fichas de ese color</td></tr></table><p>Aparece automaticamente al cerrar el ultimo jugador, y manualmente desde Sesiones - Ver - boton Balance fichas.</p><div class="info">Solo funciona con Cierre de Partida con conteo de fichas, no con montos manuales.</div>');
 
-  sec('8','Reportes PDF y WhatsApp','<p>Desde Sesiones - boton PDF o WA. Montos en la moneda de la sesion, sin abreviaturas.</p><h3>Columnas del reporte de sesion</h3><table><tr><th>Columna</th><th>Descripcion</th></tr><tr><td>Jugador</td><td>Nombre con medalla para los 3 primeros</td></tr><tr><td>Compras</td><td>Total gastado en fichas</td></tr><tr><td>Devuelto</td><td>Valor de las fichas devueltas al terminar (Compras + Resultado)</td></tr><tr><td>Resultado</td><td>Ganancia o perdida neta</td></tr></table><div class="tip">Logica transparente: compraste X, devolviste Y, resultado es Y menos X.</div>');
+  sec('8','Reportes PDF y WhatsApp','<p>Desde Sesiones - boton PDF o WA. Montos en la moneda de la sesion, sin abreviaturas.</p><h3>Columnas del reporte de sesion</h3><table><tr><th>Columna</th><th>Descripcion</th></tr><tr><td>Jugador</td><td>Nombre con medalla para los 3 primeros</td></tr><tr><td>Compras</td><td>Total gastado en fichas</td></tr><tr><td>Devuelto</td><td>Valor de las fichas devueltas al terminar (Compras + Resultado)</td></tr><tr><td>Resultado</td><td>Ganancia o perdida neta</td></tr></table>');
 
-  sec('9','Ranking','<table><tr><th>Pestania</th><th>Criterio</th></tr><tr><td>Balance</td><td>Mayor ganancia total acumulada</td></tr><tr><td>Win Rate</td><td>Mayor porcentaje de sesiones ganadas</td></tr><tr><td>Compras</td><td>Mayor gasto en fichas (cajas y monto)</td></tr></table>');
+  sec('9','Quien paga a quien','<p>Calcula automaticamente cuanto debe pagar cada perdedor y a quien, minimizando la cantidad de transferencias necesarias.</p><h3>Como usarlo</h3><ol><li>Sesiones - Ver - en cualquier sesion con resultados cargados</li><li>Clic en el boton verde <strong>Quien paga?</strong> en el encabezado del detalle</li><li>Aparece la lista de transferencias ordenadas</li></ol><h3>Ejemplo</h3><table><tr><th>Paga</th><th>Recibe</th><th>Monto</th></tr><tr><td>Hernan</td><td>Norman</td><td>Gs 13.000</td></tr><tr><td>Gustavo</td><td>Norman</td><td>Gs 5.000</td></tr><tr><td>Gustavo</td><td>Natita</td><td>Gs 5.000</td></tr></table><div class="tip">El algoritmo minimiza transferencias: cada perdedor paga al mayor ganador hasta cubrirlo, luego pasa al siguiente.</div><div class="info">El boton aparece solo cuando hay resultados positivos y negativos en la sesion.</div>');
 
-  sec('10','Estadisticas','<p>Graficos de distribucion de ganancias y compras por tipo de ficha.</p><h3>Tabla Estadisticas por jugador</h3><table><tr><th>Columna</th><th>Descripcion</th></tr><tr><td>Jugador</td><td>Alias del jugador</td></tr><tr><td>Sesiones</td><td>Total de partidas jugadas</td></tr><tr><td>Compras</td><td>Cantidad de compras y monto total</td></tr><tr><td>Cajas compradas</td><td>Equivalente en cajas del monto gastado</td></tr><tr><td>Win Rate</td><td>Porcentaje de sesiones ganadas</td></tr><tr><td>Mejor noche</td><td>Ganancia mas alta en una sola sesion</td></tr><tr><td>Peor noche</td><td>Perdida mas grande en una sola sesion</td></tr><tr><td>Balance</td><td>Ganancia o perdida total acumulada (montos completos, sin abreviatura)</td></tr></table>');
+  sec('10','Ranking','<table><tr><th>Pestania</th><th>Criterio</th></tr><tr><td>Balance</td><td>Mayor ganancia total acumulada</td></tr><tr><td>Win Rate</td><td>Mayor porcentaje de sesiones ganadas</td></tr><tr><td>Compras</td><td>Mayor gasto en fichas (cajas y monto)</td></tr></table>');
 
-  sec('11','Escala de Manos','<table><tr><th>Pos.</th><th>Mano</th><th>Descripcion</th></tr><tr><td>1</td><td>Royal Flush</td><td>A K Q J 10 mismo palo</td></tr><tr><td>2</td><td>Escalera de Color</td><td>5 consecutivas mismo palo</td></tr><tr><td>3</td><td>Poker</td><td>Cuatro cartas iguales</td></tr><tr><td>4</td><td>Full House</td><td>Trio + par</td></tr><tr><td>5</td><td>Color</td><td>5 del mismo palo</td></tr><tr><td>6</td><td>Escalera</td><td>5 consecutivas distintos palos</td></tr><tr><td>7</td><td>Trio</td><td>Tres cartas iguales</td></tr><tr><td>8</td><td>Doble Par</td><td>Dos pares distintos</td></tr><tr><td>9</td><td>Par</td><td>Dos cartas iguales</td></tr><tr><td>10</td><td>Carta Alta</td><td>Sin combinacion</td></tr></table>');
+  sec('11','Estadisticas','<p>Graficos de distribucion de ganancias y compras por tipo de ficha.</p><h3>Tabla Estadisticas por jugador</h3><table><tr><th>Columna</th><th>Descripcion</th></tr><tr><td>Jugador</td><td>Alias del jugador</td></tr><tr><td>Sesiones</td><td>Total de partidas jugadas</td></tr><tr><td>Compras</td><td>Cantidad de compras y monto total</td></tr><tr><td>Cajas compradas</td><td>Equivalente en cajas del monto gastado</td></tr><tr><td>Win Rate</td><td>Porcentaje de sesiones ganadas</td></tr><tr><td>Mejor noche</td><td>Ganancia mas alta en una sola sesion</td></tr><tr><td>Peor noche</td><td>Perdida mas grande en una sola sesion</td></tr><tr><td>Balance</td><td>Ganancia o perdida total acumulada</td></tr></table>');
 
-  sec('12','Resumen del anio','<p>Reporte anual automatico con premios y ranking. Exportar por WhatsApp o PDF.</p><table><tr><th>Premio</th><th>Criterio</th></tr><tr><td>Campeon</td><td>Mayor balance acumulado</td></tr><tr><td>Mas victorias</td><td>Mayor sesiones ganadas</td></tr><tr><td>Mayor Financiador</td><td>Mayor gasto en fichas</td></tr><tr><td>Mejor noche</td><td>Ganancia mas alta en una sesion</td></tr><tr><td>Peor noche</td><td>Perdida mas grande en una sesion</td></tr></table>');
+  sec('12','Escala de Manos','<table><tr><th>Pos.</th><th>Mano</th><th>Descripcion</th></tr><tr><td>1</td><td>Royal Flush</td><td>A K Q J 10 mismo palo</td></tr><tr><td>2</td><td>Escalera de Color</td><td>5 consecutivas mismo palo</td></tr><tr><td>3</td><td>Poker</td><td>Cuatro cartas iguales</td></tr><tr><td>4</td><td>Full House</td><td>Trio + par</td></tr><tr><td>5</td><td>Color</td><td>5 del mismo palo</td></tr><tr><td>6</td><td>Escalera</td><td>5 consecutivas distintos palos</td></tr><tr><td>7</td><td>Trio</td><td>Tres cartas iguales</td></tr><tr><td>8</td><td>Doble Par</td><td>Dos pares distintos</td></tr><tr><td>9</td><td>Par</td><td>Dos cartas iguales</td></tr><tr><td>10</td><td>Carta Alta</td><td>Sin combinacion</td></tr></table>');
 
-  sec('13','WhatsApp - Convocatoria','<p>Desde Sesiones - Convocar por WhatsApp. Completar fecha, hora, lugar y seleccionar jugadores.</p><table><tr><th>Tab</th><th>Descripcion</th></tr><tr><td>Grupo</td><td>Enlace del grupo - mensaje se copia automaticamente</td></tr><tr><td>Individual</td><td>Boton por jugador - abre chat con mensaje pre-cargado</td></tr><tr><td>Copiar</td><td>Copia al portapapeles</td></tr></table>');
+  sec('13','Resumen del anio','<p>Reporte anual automatico con premios y ranking. Exportar por WhatsApp o PDF.</p><table><tr><th>Premio</th><th>Criterio</th></tr><tr><td>Campeon</td><td>Mayor balance acumulado</td></tr><tr><td>Mas victorias</td><td>Mayor sesiones ganadas</td></tr><tr><td>Mayor Financiador</td><td>Mayor gasto en fichas</td></tr><tr><td>Mejor noche</td><td>Ganancia mas alta en una sesion</td></tr><tr><td>Peor noche</td><td>Perdida mas grande en una sesion</td></tr></table>');
 
-  sec('14','Configuracion','<p>Nombre del club (aparece en PDF, WA y resumen anual).</p><div class="info">La moneda y los valores de fichas se definen al crear cada sesion, no globalmente.</div>');
+  sec('14','WhatsApp - Convocatoria','<p>Desde Sesiones - Convocar por WhatsApp. Completar fecha, hora, lugar y seleccionar jugadores.</p><table><tr><th>Tab</th><th>Descripcion</th></tr><tr><td>Grupo</td><td>Enlace del grupo - mensaje se copia automaticamente</td></tr><tr><td>Individual</td><td>Boton por jugador - abre chat con mensaje pre-cargado</td></tr><tr><td>Copiar</td><td>Copia al portapapeles</td></tr></table>');
 
-  sec('15','Datos y respaldo','<p>Los datos se guardan en la nube (Supabase) y se sincronizan automaticamente entre dispositivos.</p><div class="tip">El indicador de estado en la barra lateral muestra: verde = sincronizado, amarillo = guardando, rojo = error de conexion.</div><h3>Exportar / Importar / Resetear</h3><p>Configuracion - Exportar (JSON) | Importar (JSON) | Resetear todo (irreversible).</p><div class="warn">Exporta un backup regularmente como respaldo adicional.</div>');
+  sec('15','Configuracion','<p>Nombre del club (aparece en PDF, WA y resumen anual).</p><div class="info">La moneda y los valores de fichas se definen al crear cada sesion, no globalmente.</div>');
 
-  w.document.write('<div class="ft"><span>Manual - ' + clubName + ' - Poker Club Manager v3.3</span><span>' + new Date().toLocaleDateString('es-PY',{day:'2-digit',month:'2-digit',year:'numeric'}) + '</span></div>');
+  sec('16','Datos y respaldo','<p>Los datos se guardan en la nube (Supabase) y se sincronizan automaticamente entre dispositivos.</p><div class="tip">El indicador de estado en la barra lateral muestra: verde = sincronizado, amarillo = guardando, rojo = error de conexion.</div><h3>Exportar / Importar / Resetear</h3><p>Configuracion - Exportar (JSON) | Importar (JSON) | Resetear todo (irreversible).</p><div class="warn">Exporta un backup regularmente como respaldo adicional.</div>');
+
+  w.document.write('<div class="ft"><span>Manual - ' + clubName + ' - La Catedral del Poker v1.0</span><span>' + new Date().toLocaleDateString('es-PY',{day:'2-digit',month:'2-digit',year:'numeric'}) + '</span></div>');
   w.document.write('</body></html>');
   w.document.close();
 }
