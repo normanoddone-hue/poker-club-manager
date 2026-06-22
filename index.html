@@ -3844,6 +3844,12 @@ function updateFooter(){
     await cloudLoad();
     _syncEnabled = true;
     setupRealtime();
+    // Keep Supabase alive - ping every 4 minutes to prevent auto-pause
+    setInterval(async ()=>{
+      try {
+        await _sb.from('pcm_state').select('id').eq('id','main').single();
+      } catch(e) { /* silently ignore */ }
+    }, 4 * 60 * 1000);
     updateFooter();
     renderDashboard();
     updateNavLabels();
