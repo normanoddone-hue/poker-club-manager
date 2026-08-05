@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidad — PokerClub Manager · La Catedral del Poker</title>
+<meta name="description" content="Política de privacidad de la aplicación PokerClub Manager, gestionada por La Catedral del Poker.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --stone:#14110F;        /* nave en sombra */
+    --panel:#1D1916;        /* piedra tallada */
+    --parchment:#E8E1D3;    /* pergamino */
+    --muted:#9A9081;        /* piedra clara */
+    --brass:#C9A24B;        /* latón */
+    --brass-dim:#8f7333;
+    --rule:#2E2822;
+    --maxw:720px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #221d18 0%, var(--stone) 55%, #0d0b09 100%);
+    color:var(--parchment);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    font-size:16px;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    padding:0 20px 80px;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;}
+
+  /* Encabezado */
+  header{
+    padding:72px 0 40px;
+    text-align:center;
+    border-bottom:1px solid var(--rule);
+  }
+  .arch{
+    width:34px;height:auto;margin:0 auto 18px;display:block;
+    color:var(--brass);opacity:.9;
+  }
+  .eyebrow{
+    font-family:'Inter',sans-serif;
+    font-size:12px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--brass);margin:0 0 14px;
+  }
+  h1{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:600;font-size:clamp(2.3rem,6vw,3.4rem);
+    line-height:1.05;letter-spacing:.01em;
+    margin:0 0 12px;color:var(--parchment);
+  }
+  .sub{
+    font-family:'Cormorant Garamond',serif;font-style:italic;
+    font-size:1.15rem;color:var(--muted);margin:0;
+  }
+  .updated{
+    margin-top:20px;font-size:12.5px;letter-spacing:.04em;
+    color:var(--muted);
+  }
+
+  /* Cuerpo */
+  main{padding-top:8px;}
+  section{padding:34px 0;border-bottom:1px solid var(--rule);}
+  section:last-of-type{border-bottom:none;}
+  h2{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:600;font-size:1.7rem;line-height:1.2;
+    margin:0 0 6px;color:var(--parchment);
+    display:flex;align-items:baseline;gap:14px;
+  }
+  h2 .num{
+    font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+    color:var(--brass);letter-spacing:.1em;
+    transform:translateY(-2px);
+  }
+  p{margin:0 0 16px;color:var(--parchment);}
+  p.lead{color:#d8d0c1;}
+  strong{color:#fff;font-weight:600;}
+  a{color:var(--brass);text-decoration:none;border-bottom:1px solid var(--brass-dim);}
+  a:hover{color:#e0bd63;}
+  ul{margin:0 0 16px;padding-left:0;list-style:none;}
+  li{
+    position:relative;padding-left:24px;margin-bottom:10px;color:var(--parchment);
+  }
+  li::before{
+    content:"";position:absolute;left:2px;top:11px;
+    width:6px;height:6px;background:var(--brass);
+    transform:rotate(45deg);opacity:.8;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    border-left:2px solid var(--brass);
+    padding:20px 22px;margin:8px 0 4px;
+    border-radius:2px;
+  }
+  .card p:last-child{margin-bottom:0;}
+
+  /* Divisor tipo rosetón, discreto */
+  .divider{
+    display:flex;align-items:center;justify-content:center;
+    gap:14px;padding:10px 0 2px;color:var(--brass);opacity:.55;
+  }
+  .divider::before,.divider::after{
+    content:"";height:1px;flex:1;max-width:80px;
+    background:linear-gradient(90deg,transparent,var(--brass-dim));
+  }
+  .divider::after{background:linear-gradient(90deg,var(--brass-dim),transparent);}
+
+  footer{
+    text-align:center;padding-top:48px;color:var(--muted);
+    font-size:13px;letter-spacing:.03em;
+  }
+  footer .mark{
+    font-family:'Cormorant Garamond',serif;font-style:italic;
+    font-size:1.05rem;color:var(--brass);display:block;margin-bottom:6px;
+  }
+
+  @media (max-width:520px){
+    body{padding:0 16px 60px;}
+    header{padding:52px 0 32px;}
+    section{padding:28px 0;}
+  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <!-- Arco ojival, guiño catedralicio -->
+    <svg class="arch" viewBox="0 0 40 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M20 2C9 2 2 12 2 26v28h36V26C38 12 31 2 20 2Z" stroke="currentColor" stroke-width="2"/>
+      <path d="M20 12c-6 0-10 6-10 14v20h20V26c0-8-4-14-10-14Z" stroke="currentColor" stroke-width="1.4" opacity=".55"/>
+      <line x1="20" y1="20" x2="20" y2="46" stroke="currentColor" stroke-width="1.2" opacity=".5"/>
+      <line x1="12" y1="34" x2="28" y2="34" stroke="currentColor" stroke-width="1.2" opacity=".5"/>
+    </svg>
+    <p class="eyebrow">La Catedral del Poker</p>
+    <h1>Política de Privacidad</h1>
+    <p class="sub">Aplicación PokerClub Manager</p>
+    <p class="updated">Última actualización: 4 de agosto de 2026</p>
+  </header>
+
+  <main>
+
+    <section>
+      <p class="lead">Esta política describe cómo la aplicación <strong>PokerClub Manager</strong>, gestionada por <strong>La Catedral del Poker</strong> (en adelante, «nosotros»), trata la información dentro de la app. PokerClub Manager es una herramienta de <strong>gestión de sesiones de poker recreativo entre miembros del club</strong>: registra fichas, valores de fichas, transferencias y liquidaciones de cada partida. <strong>No es una aplicación de apuestas ni de juego con dinero real</strong>; no se realizan pagos ni transacciones de dinero real dentro de la app.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">01</span>Datos que tratamos</h2>
+      <p>Para cumplir su función, la app almacena la siguiente información:</p>
+      <ul>
+        <li><strong>Nombres de jugadores:</strong> el nombre o apodo con el que cada participante se identifica dentro de una sesión.</li>
+        <li><strong>Datos de sesión:</strong> información de cada partida, como valores de fichas, compras (buy-ins), transferencias entre jugadores y resultados de liquidación.</li>
+      </ul>
+      <p>Esta información se guarda en un servicio de base de datos alojado en la nube (<strong>Supabase</strong>) para permitir el registro histórico de las sesiones y su consulta posterior. No recopilamos información sensible como datos financieros reales, ubicación precisa, contactos del dispositivo ni identificadores publicitarios.</p>
+    </section>
+
+    <div class="divider">✦</div>
+
+    <section>
+      <h2><span class="num">02</span>Para qué usamos los datos</h2>
+      <p>Los datos se utilizan únicamente para el funcionamiento interno de la app:</p>
+      <ul>
+        <li>Registrar y calcular fichas, transferencias y liquidaciones de cada sesión.</li>
+        <li>Generar reportes de la partida (por ejemplo, resúmenes en PDF o para compartir por mensajería).</li>
+        <li>Mantener el historial de sesiones del club para su consulta.</li>
+      </ul>
+      <p>No utilizamos los datos con fines publicitarios ni de perfilado.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">03</span>Con quién los compartimos</h2>
+      <div class="card">
+        <p><strong>No vendemos ni compartimos los datos con terceros</strong> con fines comerciales, publicitarios ni de marketing.</p>
+      </div>
+      <p>La información se aloja en <strong>Supabase</strong>, que actúa como proveedor de infraestructura de base de datos por cuenta nuestra. Los datos pueden compartirse cuando lo exija una obligación legal o una autoridad competente. Fuera de esos casos, la información permanece dentro del ámbito del club.</p>
+    </section>
+
+    <div class="divider">✦</div>
+
+    <section>
+      <h2><span class="num">04</span>Seguridad y conservación</h2>
+      <p>La transmisión de datos hacia el servidor se realiza mediante conexiones cifradas (HTTPS). Conservamos la información de las sesiones mientras el club la necesite para su registro histórico. Si se solicita la eliminación de datos de un jugador, procederemos a borrarlos conforme a lo indicado en la sección siguiente.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">05</span>Tus derechos</h2>
+      <p>Cualquier jugador o miembro del club puede solicitar:</p>
+      <ul>
+        <li><strong>Acceder</strong> a los datos que tenemos sobre él.</li>
+        <li><strong>Rectificar</strong> información incorrecta.</li>
+        <li><strong>Eliminar</strong> sus datos de nuestros registros.</li>
+      </ul>
+      <p>Para ejercer cualquiera de estos derechos, escribinos al correo de contacto indicado abajo. Atenderemos la solicitud en un plazo razonable.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">06</span>Menores de edad</h2>
+      <p>PokerClub Manager está dirigida a <strong>personas mayores de 18 años</strong>. No está pensada para menores y no recopilamos deliberadamente datos de personas menores de edad.</p>
+    </section>
+
+    <div class="divider">✦</div>
+
+    <section>
+      <h2><span class="num">07</span>Cambios en esta política</h2>
+      <p>Podemos actualizar esta política para reflejar cambios en la app o en la normativa aplicable. Publicaremos cualquier modificación en esta misma página, actualizando la fecha de «Última actualización».</p>
+    </section>
+
+    <section>
+      <h2><span class="num">08</span>Contacto</h2>
+      <div class="card">
+        <p>Para consultas sobre privacidad o para ejercer tus derechos:</p>
+        <p><strong>La Catedral del Poker</strong><br>
+        Correo: <a href="mailto:normanoddone@gmail.com">normanoddone@gmail.com</a></p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span class="mark">La Catedral del Poker</span>
+    © 2026 · PokerClub Manager. Todos los derechos reservados.
+  </footer>
+
+</div>
+</body>
+</html>
