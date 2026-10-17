@@ -446,11 +446,24 @@
 
 <!-- MANOS -->
 <div class="page" id="page-manos">
-  <div class="page-header">
-    <div class="page-title">🃏 Escala de Manos</div>
-    <div class="page-sub">De mayor a menor — Texas Hold'em</div>
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <div class="page-title">🃏 Manos de Poker</div>
+      <div class="page-sub">Escala de manos y registro histórico del club</div>
+    </div>
+    <button class="btn btn-gold" onclick="openModal('modal-mano-especial')" id="btn-registrar-mano" style="display:none;">
+      + Registrar mano
+    </button>
   </div>
-  <div style="display:flex;flex-direction:column;gap:0.75rem;">
+
+  <!-- TABS -->
+  <div class="tabs" style="margin-bottom:1.5rem;">
+    <div class="tab active" id="tab-escala" onclick="switchManosTab('escala')">Escala de Manos</div>
+    <div class="tab" id="tab-ranking-manos" onclick="switchManosTab('ranking')">🏆 Ranking del Club</div>
+  </div>
+
+  <!-- TAB: ESCALA -->
+  <div id="manos-tab-escala" style="display:flex;flex-direction:column;gap:0.75rem;">
 
     <!-- 1. ROYAL FLUSH -->
     <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.35);border-radius:var(--radius);padding:1rem 1.25rem;display:flex;align-items:center;gap:1.25rem;">
@@ -632,6 +645,65 @@
       <div style="text-align:right;flex-shrink:0;"><div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Posición</div><div style="font-family:'Bebas Neue';font-size:1.8rem;color:#64748b;line-height:1;">10°</div><div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">MÁS BAJA</div></div>
     </div>
 
+  </div>
+
+  <!-- TAB: RANKING DE MANOS ESPECIALES -->
+  <div id="manos-tab-ranking" style="display:none;">
+    <div id="manos-ranking-content"></div>
+  </div>
+</div>
+
+<!-- MODAL: REGISTRAR MANO ESPECIAL -->
+<div class="modal-overlay" id="modal-mano-especial">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Registrar Mano Especial</div>
+      <button class="close-btn" onclick="closeModal('modal-mano-especial')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:1.25rem;">
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.5rem;letter-spacing:0.5px;">TIPO DE MANO</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;" id="mano-tipo-btns">
+          <button class="btn btn-ghost" style="justify-content:flex-start;gap:0.75rem;padding:0.75rem 1rem;border-radius:var(--radius-sm);" onclick="selectManoBtnTipo('royal')" id="mano-btn-royal">
+            <span style="font-size:1.3rem;">👑</span>
+            <div style="text-align:left;">
+              <div style="font-family:'Bebas Neue';letter-spacing:0.5px;color:#fbbf24;">Royal Flush</div>
+              <div style="font-size:0.72rem;color:var(--text-dim);">A-K-Q-J-10 del mismo palo</div>
+            </div>
+          </button>
+          <button class="btn btn-ghost" style="justify-content:flex-start;gap:0.75rem;padding:0.75rem 1rem;border-radius:var(--radius-sm);" onclick="selectManoBtnTipo('escalera_color')" id="mano-btn-escalera_color">
+            <span style="font-size:1.3rem;">🌈</span>
+            <div style="text-align:left;">
+              <div style="font-family:'Bebas Neue';letter-spacing:0.5px;color:#a78bfa;">Escalera de Color</div>
+              <div style="font-size:0.72rem;color:var(--text-dim);">Cinco consecutivas del mismo palo</div>
+            </div>
+          </button>
+          <button class="btn btn-ghost" style="justify-content:flex-start;gap:0.75rem;padding:0.75rem 1rem;border-radius:var(--radius-sm);" onclick="selectManoBtnTipo('poker')" id="mano-btn-poker">
+            <span style="font-size:1.3rem;">4️⃣</span>
+            <div style="text-align:left;">
+              <div style="font-family:'Bebas Neue';letter-spacing:0.5px;color:#f87171;">Póker</div>
+              <div style="font-size:0.72rem;color:var(--text-dim);">Cuatro cartas del mismo valor</div>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>JUGADOR</label>
+        <select id="mano-jugador-sel">
+          <option value="">— Seleccioná un jugador —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>SESIÓN <span style="font-weight:400;color:var(--text-dim);">(opcional)</span></label>
+        <select id="mano-sesion-sel">
+          <option value="">— Sin sesión asociada —</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-mano-especial')">Cancelar</button>
+      <button class="btn btn-gold" onclick="guardarManoEspecial()">Guardar</button>
+    </div>
   </div>
 </div>
 
@@ -1436,6 +1508,7 @@ function load(){
   const d = localStorage.getItem('pokerclub_v3');
   if(d){ try{ state = JSON.parse(d); }catch(e){} }
   if(!state.recompras) state.recompras = [];
+  if(!state.manosEspeciales) state.manosEspeciales = [];
 }
 
 // ========== CONFIRM DIALOG ==========
@@ -1492,8 +1565,10 @@ function openModal(id){
   if(id==='modal-recompra') initRecompraModal(null);
   if(id==='modal-cierre')   initCierreModal();
   if(id==='modal-convocatoria') initConvocatoriaModal();
+  if(id==='modal-mano-especial') initModalManoEspecial();
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
 
 // ========== CHIP HELPERS ==========
 
@@ -3416,46 +3491,242 @@ const MANOS = [
   },
 ];
 
+// ---- MANOS ESPECIALES ----
+let _manosTab = 'escala';
+let _manoTipoSel = null;
+
+function switchManosTab(tab){
+  _manosTab = tab;
+  document.getElementById('tab-escala').classList.toggle('active', tab==='escala');
+  document.getElementById('tab-ranking-manos').classList.toggle('active', tab==='ranking');
+  document.getElementById('manos-tab-escala').style.display = tab==='escala' ? 'flex' : 'none';
+  document.getElementById('manos-tab-escala').style.flexDirection = 'column';
+  document.getElementById('manos-tab-escala').style.gap = '0.75rem';
+  document.getElementById('manos-tab-ranking').style.display = tab==='ranking' ? 'block' : 'none';
+  document.getElementById('btn-registrar-mano').style.display = tab==='ranking' ? 'inline-flex' : 'none';
+  if(tab==='ranking') renderManosRanking();
+}
+
 function renderManos(){
-  const el = document.getElementById('manos-list');
+  const el = document.getElementById('manos-tab-escala');
   if(!el) return;
 
-  // helper: color del palo
+  // restore tab state
+  document.getElementById('manos-tab-escala').style.display = _manosTab==='escala' ? 'flex' : 'none';
+  document.getElementById('manos-tab-escala').style.flexDirection = 'column';
+  document.getElementById('manos-tab-escala').style.gap = '0.75rem';
+  document.getElementById('manos-tab-ranking').style.display = _manosTab==='ranking' ? 'block' : 'none';
+  document.getElementById('btn-registrar-mano').style.display = _manosTab==='ranking' ? 'inline-flex' : 'none';
+  document.getElementById('tab-escala').classList.toggle('active', _manosTab==='escala');
+  document.getElementById('tab-ranking-manos').classList.toggle('active', _manosTab==='ranking');
+
   function paloColor(carta){
     return (carta.includes('♥')||carta.includes('♦')) ? '#f87171' : '#e2e8f0';
   }
   function cartaHtml(carta){
     const col = paloColor(carta);
-    return `<div style="
-      display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
-      width:38px;height:52px;background:#1e293b;border-radius:6px;
-      border:1px solid rgba(255,255,255,0.12);font-size:0.75rem;font-weight:700;
-      color:${col};line-height:1.2;box-shadow:0 2px 4px rgba(0,0,0,0.3);flex-shrink:0;
-    ">${carta.slice(0,-1)}<span style="font-size:1rem;">${carta.slice(-1)}</span></div>`;
+    return '<div style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:38px;height:52px;background:#1e293b;border-radius:6px;border:1px solid rgba(255,255,255,0.12);font-size:0.75rem;font-weight:700;color:'+col+';line-height:1.2;box-shadow:0 2px 4px rgba(0,0,0,0.3);flex-shrink:0;">'+carta.slice(0,-1)+'<span style="font-size:1rem;">'+carta.slice(-1)+'</span></div>';
   }
 
-  el.innerHTML = MANOS.map((m,idx)=>`
-    <div style="background:${m.bg};border:1px solid ${m.border};border-radius:var(--radius);padding:1rem 1.25rem;display:flex;align-items:center;gap:1.25rem;transition:transform 0.15s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform=''">
-      
-      <div style="width:36px;height:36px;border-radius:50%;background:${m.border};border:2px solid ${m.color};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:1.1rem;color:${m.color};flex-shrink:0;">${MANOS.length - idx}</div>
-      
-      <div style="display:flex;gap:3px;flex-shrink:0;">${m.cartas.map(cartaHtml).join('')}</div>
-      
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
-          <span style="font-family:'Bebas Neue';font-size:1.15rem;letter-spacing:0.5px;color:${m.color};">${m.nombre}</span>
-          <span style="font-size:0.9rem;">${m.emoji}</span>
-        </div>
-        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.2rem;">${m.desc}</div>
-        <div style="font-size:0.75rem;color:var(--text-dim);">${m.nota}</div>
-      </div>
-      
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Posición</div>
-        <div style="font-family:'Bebas Neue';font-size:1.8rem;color:${m.color};line-height:1;">${MANOS.length - idx}°</div>
-        <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">${idx===0?'MÁS ALTA':idx===MANOS.length-1?'MÁS BAJA':''}</div>
-      </div>
-    </div>`).join('');
+  el.innerHTML = MANOS.map(function(m,idx){
+    return '<div style="background:'+m.bg+';border:1px solid '+m.border+';border-radius:var(--radius);padding:1rem 1.25rem;display:flex;align-items:center;gap:1.25rem;transition:transform 0.15s;" onmouseover="this.style.transform=\'translateX(4px)\'" onmouseout="this.style.transform=\'\'">'+
+      '<div style="width:36px;height:36px;border-radius:50%;background:'+m.border+';border:2px solid '+m.color+';display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\';font-size:1.1rem;color:'+m.color+';flex-shrink:0;">'+(MANOS.length-idx)+'</div>'+
+      '<div style="display:flex;gap:3px;flex-shrink:0;">'+m.cartas.map(cartaHtml).join('')+'</div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">'+
+          '<span style="font-family:\'Bebas Neue\';font-size:1.15rem;letter-spacing:0.5px;color:'+m.color+';">'+m.nombre+'</span>'+
+          '<span style="font-size:0.9rem;">'+m.emoji+'</span>'+
+        '</div>'+
+        '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.2rem;">'+m.desc+'</div>'+
+        '<div style="font-size:0.75rem;color:var(--text-dim);">'+m.nota+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;flex-shrink:0;">'+
+        '<div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">Posición</div>'+
+        '<div style="font-family:\'Bebas Neue\';font-size:1.8rem;color:'+m.color+';line-height:1;">'+(MANOS.length-idx)+'°</div>'+
+        '<div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">'+(idx===0?'MÁS ALTA':idx===MANOS.length-1?'MÁS BAJA':'')+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  if(_manosTab==='ranking') renderManosRanking();
+}
+
+function renderManosRanking(){
+  if(!state.manosEspeciales) state.manosEspeciales = [];
+  const el = document.getElementById('manos-ranking-content');
+  if(!el) return;
+
+  const TIPOS = {
+    royal:          { label:'Royal Flush',       emoji:'👑', color:'#fbbf24' },
+    escalera_color: { label:'Escalera de Color', emoji:'🌈', color:'#a78bfa' },
+    poker:          { label:'Póker',             emoji:'4️⃣', color:'#f87171' }
+  };
+
+  // Totales por jugador
+  const totals = {};
+  state.manosEspeciales.forEach(function(m){
+    if(!totals[m.playerId]) totals[m.playerId] = { royal:0, escalera_color:0, poker:0, total:0 };
+    totals[m.playerId][m.tipo] = (totals[m.playerId][m.tipo]||0) + 1;
+    totals[m.playerId].total++;
+  });
+
+  // Stats globales
+  const totalRoyal = state.manosEspeciales.filter(function(m){ return m.tipo==='royal'; }).length;
+  const totalEsc   = state.manosEspeciales.filter(function(m){ return m.tipo==='escalera_color'; }).length;
+  const totalPok   = state.manosEspeciales.filter(function(m){ return m.tipo==='poker'; }).length;
+  const totalAll   = state.manosEspeciales.length;
+
+  // Jugadores rankeados
+  const ranked = Object.keys(totals).map(function(pid){
+    const p = state.players.find(function(x){ return x.id==pid; });
+    return { pid: pid, name: p ? p.name : 'Desconocido', avatar: p ? p.avatar : '', data: totals[pid] };
+  }).sort(function(a,b){ return b.data.total - a.data.total; });
+
+  if(totalAll === 0){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🃏</div><div>No hay manos especiales registradas aún.</div><div style="font-size:0.8rem;color:var(--text-dim);margin-top:0.5rem;">Usá el botón "+ Registrar mano" para anotar Póker, Escalera de Color o Royal Flush.</div></div>';
+    return;
+  }
+
+  var html = '';
+
+  // Tarjetas de resumen
+  html += '<div class="stats-grid" style="margin-bottom:1.5rem;">';
+  html += '<div class="stat-card"><div class="stat-label">Total manos especiales</div><div class="stat-value gold">'+totalAll+'</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">👑 Royal Flush</div><div class="stat-value" style="color:#fbbf24;">'+totalRoyal+'</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">🌈 Escalera de Color</div><div class="stat-value" style="color:#a78bfa;">'+totalEsc+'</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">4️⃣ Póker</div><div class="stat-value" style="color:#f87171;">'+totalPok+'</div></div>';
+  html += '</div>';
+
+  // Tabla ranking
+  html += '<div class="card"><div class="section-title">Ranking del Club</div><div class="table-wrap"><table>';
+  html += '<thead><tr><th>#</th><th>Jugador</th><th style="text-align:center;">👑 Royal</th><th style="text-align:center;">🌈 Esc. Color</th><th style="text-align:center;">4️⃣ Póker</th><th style="text-align:center;">Total</th><th></th></tr></thead><tbody>';
+
+  ranked.forEach(function(r, idx){
+    var rankClass = idx===0 ? 'rank-1' : idx===1 ? 'rank-2' : idx===2 ? 'rank-3' : '';
+    var av = r.avatar ? '<img src="'+r.avatar+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;">' : '<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--bg-panel);font-size:0.75rem;color:var(--text-muted);vertical-align:middle;margin-right:6px;">'+r.name.charAt(0).toUpperCase()+'</span>';
+    html += '<tr class="'+rankClass+'">';
+    html += '<td><div class="rank-badge">'+(idx+1)+'</div></td>';
+    html += '<td>'+av+'<span style="font-weight:500;">'+r.name+'</span></td>';
+    html += '<td style="text-align:center;"><span style="font-family:\'Bebas Neue\';font-size:1.2rem;color:#fbbf24;">'+(r.data.royal||0)+'</span></td>';
+    html += '<td style="text-align:center;"><span style="font-family:\'Bebas Neue\';font-size:1.2rem;color:#a78bfa;">'+(r.data.escalera_color||0)+'</span></td>';
+    html += '<td style="text-align:center;"><span style="font-family:\'Bebas Neue\';font-size:1.2rem;color:#f87171;">'+(r.data.poker||0)+'</span></td>';
+    html += '<td style="text-align:center;"><span style="font-family:\'Bebas Neue\';font-size:1.4rem;color:var(--gold);">'+r.data.total+'</span></td>';
+    html += '<td><button class="btn btn-danger btn-sm" onclick="eliminarUltimaMano(\''+r.pid+'\')">✕</button></td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div></div>';
+
+  // Historial reciente
+  if(state.manosEspeciales.length > 0){
+    html += '<div class="card" style="margin-top:1.5rem;"><div class="section-title">Historial reciente</div>';
+    var recent = state.manosEspeciales.slice().reverse().slice(0,20);
+    html += '<div style="display:flex;flex-direction:column;gap:0.4rem;">';
+    recent.forEach(function(m){
+      var p = state.players.find(function(x){ return x.id==m.playerId; });
+      var pname = p ? (p.alias||p.name||p.nombre) : 'Desconocido';
+      var t = TIPOS[m.tipo] || { label: m.tipo, emoji:'🃏', color:'var(--gold)' };
+      var dateStr = m.fecha ? m.fecha.slice(0,10) : '';
+      var ses = m.sessionId ? state.sessions.find(function(x){ return x.id==m.sessionId; }) : null;
+      var sesLabel = ses ? (ses.descripcion||ses.fecha||'') : '';
+      html += '<div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.75rem;background:var(--bg-panel);border-radius:var(--radius-sm);">';
+      html += '<span style="font-size:1.2rem;">'+t.emoji+'</span>';
+      html += '<div style="flex:1;min-width:0;"><div style="font-weight:500;">'+pname+'</div>'+(sesLabel?'<div style="font-size:0.7rem;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sesLabel+'</div>':'')+'</div>';
+      html += '<span style="font-size:0.82rem;color:'+t.color+';white-space:nowrap;">'+t.label+'</span>';
+      html += '<span style="font-size:0.72rem;color:var(--text-dim);white-space:nowrap;">'+dateStr+'</span>';
+      html += '<button class="btn btn-danger btn-sm" style="padding:0.2rem 0.5rem;font-size:0.7rem;" onclick="eliminarManoById(\''+m.id+'\')">✕</button>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+function selectManoBtnTipo(tipo){
+  _manoTipoSel = tipo;
+  ['royal','escalera_color','poker'].forEach(function(t){
+    var btn = document.getElementById('mano-btn-'+t);
+    if(!btn) return;
+    if(t === tipo){
+      btn.style.border = '1px solid var(--gold)';
+      btn.style.background = 'rgba(201,168,76,0.1)';
+    } else {
+      btn.style.border = '1px solid var(--border)';
+      btn.style.background = 'transparent';
+    }
+  });
+}
+
+function initModalManoEspecial(){
+  _manoTipoSel = null;
+  ['royal','escalera_color','poker'].forEach(function(t){
+    var btn = document.getElementById('mano-btn-'+t);
+    if(btn){ btn.style.border='1px solid var(--border)'; btn.style.background='transparent'; }
+  });
+
+  // Poblar jugadores
+  var sel = document.getElementById('mano-jugador-sel');
+  sel.innerHTML = '<option value="">— Seleccioná un jugador —</option>';
+  state.players.forEach(function(p){
+    sel.innerHTML += '<option value="'+p.id+'">'+(p.alias||p.name||p.nombre)+'</option>';
+  });
+
+  // Poblar sesiones (más recientes primero)
+  var ssel = document.getElementById('mano-sesion-sel');
+  ssel.innerHTML = '<option value="">— Sin sesión asociada —</option>';
+  var sesOrdenadas = (state.sessions||[]).slice().sort(function(a,b){
+    return (b.fecha||'').localeCompare(a.fecha||'');
+  });
+  sesOrdenadas.forEach(function(s){
+    ssel.innerHTML += '<option value="'+s.id+'">'+(s.fecha||'')+(s.descripcion?' · '+s.descripcion:'')+'</option>';
+  });
+}
+
+function guardarManoEspecial(){
+  if(!_manoTipoSel){ showToast('Seleccioná el tipo de mano'); return; }
+  var pid = document.getElementById('mano-jugador-sel').value;
+  if(!pid){ showToast('Seleccioná un jugador'); return; }
+  var sid = document.getElementById('mano-sesion-sel').value || null;
+  if(!state.manosEspeciales) state.manosEspeciales = [];
+  var rec = { id: Date.now()+'_'+Math.random().toString(36).slice(2,7), playerId: pid, tipo: _manoTipoSel, fecha: new Date().toISOString() };
+  if(sid) rec.sessionId = sid;
+  state.manosEspeciales.push(rec);
+  save();
+  closeModal('modal-mano-especial');
+  var TIPOS = { royal:'👑 Royal Flush', escalera_color:'🌈 Escalera de Color', poker:'4️⃣ Póker' };
+  var p = state.players.find(function(x){ return x.id==pid; });
+  var s = sid ? state.sessions.find(function(x){ return x.id==sid; }) : null;
+  showToast((p?p.alias||p.name||p.nombre:'Jugador')+' — '+TIPOS[_manoTipoSel]+(s?' ('+s.descripcion+')':'')+' ✓');
+  renderManosRanking();
+}
+
+function eliminarUltimaMano(pid){
+  if(!state.manosEspeciales || !state.manosEspeciales.length) return;
+  var idx = -1;
+  for(var i=state.manosEspeciales.length-1; i>=0; i--){
+    if(state.manosEspeciales[i].playerId == pid){ idx=i; break; }
+  }
+  if(idx<0){ showToast('No hay manos de este jugador'); return; }
+  var p = state.players.find(function(x){ return x.id==pid; });
+  confirmAction('Eliminar última mano', 'Se eliminará la última mano registrada de '+(p?p.name:'este jugador')+'.', 'Eliminar', function(){
+    state.manosEspeciales.splice(idx,1);
+    save();
+    renderManosRanking();
+    showToast('Mano eliminada');
+  });
+}
+
+function eliminarManoById(id){
+  if(!state.manosEspeciales) return;
+  var idx = state.manosEspeciales.findIndex(function(m){ return m.id==id; });
+  if(idx<0) return;
+  confirmAction('Eliminar mano', '¿Eliminar este registro del historial?', 'Eliminar', function(){
+    state.manosEspeciales.splice(idx,1);
+    save();
+    renderManosRanking();
+    showToast('Registro eliminado');
+  });
 }
 
 // ========== RESUMEN DEL AÑO ==========
@@ -3538,8 +3809,36 @@ function calcAnioData(year){
     });
   });
 
+  // Manos especiales del año
+  const manosAnio = (state.manosEspeciales||[]).filter(function(m){
+    // Puede estar asociada a sesión o solo tener fecha ISO
+    if(m.sessionId){
+      const s = state.sessions.find(function(x){ return x.id==m.sessionId; });
+      return s && s.fecha && s.fecha.startsWith(year);
+    }
+    return m.fecha && m.fecha.startsWith(year);
+  });
+
+  // Top manos por jugador en el año
+  const manosByPlayer = {};
+  manosAnio.forEach(function(m){
+    if(!manosByPlayer[m.playerId]) manosByPlayer[m.playerId] = { royal:0, escalera_color:0, poker:0, total:0 };
+    manosByPlayer[m.playerId][m.tipo] = (manosByPlayer[m.playerId][m.tipo]||0)+1;
+    manosByPlayer[m.playerId].total++;
+  });
+  const manosCampeon = Object.keys(manosByPlayer).map(function(pid){
+    const p = state.players.find(function(x){ return x.id==pid; });
+    return { p: p||{alias:'?',nombre:'',apellido:'',id:pid}, data: manosByPlayer[pid] };
+  }).sort(function(a,b){ return b.data.total-a.data.total; })[0] || null;
+
+  const totalManosAnio = { royal: manosAnio.filter(function(m){ return m.tipo==='royal'; }).length,
+    escalera_color: manosAnio.filter(function(m){ return m.tipo==='escalera_color'; }).length,
+    poker: manosAnio.filter(function(m){ return m.tipo==='poker'; }).length,
+    total: manosAnio.length };
+
   return { year, sesiones, playerStats, sesionMasGrande, totalComprasMonto, totalCajas,
-    totalSesiones, campeon, perdedor, reyAllin, masVictorias, mayorNoche, peorNoche };
+    totalSesiones, campeon, perdedor, reyAllin, masVictorias, mayorNoche, peorNoche,
+    manosAnio, manosByPlayer, manosCampeon, totalManosAnio };
 }
 
 function renderAnio(){
@@ -3643,7 +3942,43 @@ function renderAnio(){
           </tr>`).join('')}
         </tbody>
       </table></div>
-    </div>`;
+    </div>
+
+    ${d.totalManosAnio.total>0?`
+    <div class="card" style="margin-top:1rem;border-color:rgba(201,168,76,0.25);">
+      <div class="section-title">🃏 Manos Especiales ${year}</div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0.6rem;margin-bottom:1.25rem;">
+        <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value gold">${d.totalManosAnio.total}</div></div>
+        <div class="stat-card"><div class="stat-label">👑 Royal Flush</div><div class="stat-value" style="color:#fbbf24;font-size:1.5rem;">${d.totalManosAnio.royal}</div></div>
+        <div class="stat-card"><div class="stat-label">🌈 Esc. Color</div><div class="stat-value" style="color:#a78bfa;font-size:1.5rem;">${d.totalManosAnio.escalera_color}</div></div>
+        <div class="stat-card"><div class="stat-label">4️⃣ Póker</div><div class="stat-value" style="color:#f87171;font-size:1.5rem;">${d.totalManosAnio.poker}</div></div>
+      </div>
+
+      ${d.manosCampeon?`<div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(201,168,76,0.07);border-radius:var(--radius-sm);border:1px solid rgba(201,168,76,0.2);margin-bottom:1rem;">
+        <span style="font-size:1.5rem;">🃏</span>
+        <div style="flex:1;">
+          <div style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);">Rey de las manos</div>
+          <div style="font-weight:700;">${d.manosCampeon.p.alias||d.manosCampeon.p.nombre}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Bebas Neue';font-size:1.8rem;color:var(--gold);line-height:1;">${d.manosCampeon.data.total}</div>
+          <div style="font-size:0.7rem;color:var(--text-dim);">manos especiales</div>
+        </div>
+      </div>`:''}
+
+      <div class="table-wrap"><table>
+        <thead><tr><th>Jugador</th><th style="text-align:center;">👑</th><th style="text-align:center;">🌈</th><th style="text-align:center;">4️⃣</th><th style="text-align:center;">Total</th></tr></thead>
+        <tbody>
+          ${Object.keys(d.manosByPlayer).map(function(pid){
+            const pp = state.players.find(function(x){ return x.id==pid; });
+            const md = d.manosByPlayer[pid];
+            return '<tr><td>'+(pp?pp.alias||pp.nombre:'?')+'</td><td style="text-align:center;color:#fbbf24;font-family:\'Bebas Neue\';font-size:1.1rem;">'+(md.royal||0)+'</td><td style="text-align:center;color:#a78bfa;font-family:\'Bebas Neue\';font-size:1.1rem;">'+(md.escalera_color||0)+'</td><td style="text-align:center;color:#f87171;font-family:\'Bebas Neue\';font-size:1.1rem;">'+(md.poker||0)+'</td><td style="text-align:center;font-family:\'Bebas Neue\';font-size:1.2rem;color:var(--gold);">'+md.total+'</td></tr>';
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>`:''}
+    `;
 }
 
 function buildAnioWAMsg(year){
