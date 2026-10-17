@@ -1092,6 +1092,7 @@ async function cloudLoad(){
       if(cloud.sessions && cloud.sessions.length > 0) state.sessions = cloud.sessions;
       if(cloud.recompras && cloud.recompras.length > 0) state.recompras = cloud.recompras;
       if(cloud.config && cloud.config.name) state.config = {...state.config, ...cloud.config};
+      if(cloud.manosEspeciales) state.manosEspeciales = cloud.manosEspeciales;
       localStorage.setItem('pokerclub_v3', JSON.stringify(state));
       setCloudStatus('ok', 'Nube sincronizada');
       showToast('☁️ Sincronizado con la nube');
@@ -3579,7 +3580,8 @@ function renderManosRanking(){
   // Jugadores rankeados
   const ranked = Object.keys(totals).map(function(pid){
     const p = state.players.find(function(x){ return x.id==pid; });
-    return { pid: pid, name: p ? p.name : 'Desconocido', avatar: p ? p.avatar : '', data: totals[pid] };
+    const pname = p ? (p.alias || p.nombre || p.name || 'Jugador') : 'Desconocido';
+    return { pid: pid, name: pname, avatar: p ? (p.avatar||p.foto||'') : '', data: totals[pid] };
   }).sort(function(a,b){ return b.data.total - a.data.total; });
 
   if(totalAll === 0){
@@ -3603,7 +3605,8 @@ function renderManosRanking(){
 
   ranked.forEach(function(r, idx){
     var rankClass = idx===0 ? 'rank-1' : idx===1 ? 'rank-2' : idx===2 ? 'rank-3' : '';
-    var av = r.avatar ? '<img src="'+r.avatar+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;">' : '<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--bg-panel);font-size:0.75rem;color:var(--text-muted);vertical-align:middle;margin-right:6px;">'+r.name.charAt(0).toUpperCase()+'</span>';
+    var _rname = r.name || r.nombre || r.alias || '?';
+    var av = r.avatar ? '<img src="'+r.avatar+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;">' : '<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--bg-panel);font-size:0.75rem;color:var(--text-muted);vertical-align:middle;margin-right:6px;">'+_rname.charAt(0).toUpperCase()+'</span>';
     html += '<tr class="'+rankClass+'">';
     html += '<td><div class="rank-badge">'+(idx+1)+'</div></td>';
     html += '<td>'+av+'<span style="font-weight:500;">'+r.name+'</span></td>';
