@@ -3589,6 +3589,31 @@ function renderManosRanking(){
     return;
   }
 
+  // ---- Estadísticas B: % de sesiones con mano especial ----
+  var totalSesiones = (state.sessions||[]).length;
+  // Sesiones que tuvieron al menos una mano especial (por sessionId o por fecha)
+  var sesionesConMano = new Set();
+  state.manosEspeciales.forEach(function(m){
+    if(m.sessionId){ sesionesConMano.add(m.sessionId); }
+  });
+  var pctSesiones = totalSesiones > 0 ? Math.round(sesionesConMano.size / totalSesiones * 100) : 0;
+  // Frecuencia por tipo (sesiones donde apareció al menos 1 de ese tipo)
+  var sesByTipo = { royal: new Set(), escalera_color: new Set(), poker: new Set() };
+  state.manosEspeciales.forEach(function(m){
+    if(m.sessionId && sesByTipo[m.tipo]) sesByTipo[m.tipo].add(m.sessionId);
+  });
+
+  // ---- Estadísticas C: frecuencia por jugador ----
+  // Para cada jugador: cuántas sesiones jugó vs cuántas manos especiales tiene
+  var jugadorFreq = ranked.map(function(r){
+    var sesJugadas = (state.sessions||[]).filter(function(s){
+      return s.players && s.players.some(function(sp){ return sp.id==r.pid; });
+    }).length;
+    var cadaN = sesJugadas > 0 && r.data.total > 0 ? (sesJugadas / r.data.total).toFixed(1) : null;
+    return { name: r.name, total: r.data.total, sesJugadas: sesJugadas, cadaN: cadaN,
+      royal: r.data.royal||0, escalera_color: r.data.escalera_color||0, poker: r.data.poker||0 };
+  });
+
   var html = '';
 
   // Tarjetas de resumen
@@ -3598,6 +3623,71 @@ function renderManosRanking(){
   html += '<div class="stat-card"><div class="stat-label">🌈 Escalera de Color</div><div class="stat-value" style="color:#a78bfa;">'+totalEsc+'</div></div>';
   html += '<div class="stat-card"><div class="stat-label">4️⃣ Póker</div><div class="stat-value" style="color:#f87171;">'+totalPok+'</div></div>';
   html += '</div>';
+
+  // ---- Bloque B: % de noches con mano especial ----
+  if(sesionesConMano.size > 0){
+    html += '<div class="card" style="margin-bottom:1rem;">';
+    html += '<div class="section-title">📊 Frecuencia por noche</div>';
+    html += '<div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:1rem;">En qué % de sesiones apareció cada tipo de mano (solo sesiones asociadas al registro)</div>';
+
+    // Barra principal
+    html += '<div style="margin-bottom:1.25rem;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.4rem;">';
+    html += '<span style="font-size:0.85rem;color:var(--text-muted);">Noches con mano especial</span>';
+    html += '<span style="font-family:\'Bebas Neue\';font-size:1.4rem;color:var(--gold);">'+sesionesConMano.size+' / '+totalSesiones+' <span style="font-size:1rem;">('+pctSesiones+'%)</span></span>';
+    html += '</div>';
+    html += '<div style="height:8px;background:var(--bg-panel);border-radius:4px;overflow:hidden;">';
+    html += '<div style="height:100%;width:'+pctSesiones+'%;background:linear-gradient(90deg,var(--gold),#f59e0b);border-radius:4px;transition:width 0.6s;"></div>';
+    html += '</div></div>';
+
+    // Barras por tipo
+    var tipos = [
+      { key:'royal',          label:'👑 Royal Flush',       color:'#fbbf24' },
+      { key:'escalera_color', label:'🌈 Escalera de Color', color:'#a78bfa' },
+      { key:'poker',          label:'4️⃣ Póker',            color:'#f87171' }
+    ];
+    tipos.forEach(function(t){
+      var cnt = sesByTipo[t.key].size;
+      var pct = totalSesiones > 0 ? Math.round(cnt / totalSesiones * 100) : 0;
+      html += '<div style="margin-bottom:0.75rem;">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;">';
+      html += '<span style="font-size:0.82rem;color:var(--text-muted);">'+t.label+'</span>';
+      html += '<span style="font-size:0.82rem;color:'+t.color+';font-weight:600;">'+cnt+' noches · '+pct+'%</span>';
+      html += '</div>';
+      html += '<div style="height:5px;background:var(--bg-panel);border-radius:3px;overflow:hidden;">';
+      html += '<div style="height:100%;width:'+pct+'%;background:'+t.color+';border-radius:3px;opacity:0.8;"></div>';
+      html += '</div></div>';
+    });
+
+    html += '<div style="font-size:0.72rem;color:var(--text-dim);margin-top:0.5rem;">💡 Solo cuenta sesiones donde se asoció la mano al registrarla.</div>';
+    html += '</div>';
+  }
+
+  // ---- Bloque C: frecuencia por jugador ----
+  html += '<div class="card" style="margin-bottom:1rem;">';
+  html += '<div class="section-title">🎯 Frecuencia por jugador</div>';
+  html += '<div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:1rem;">1 mano especial cada N sesiones jugadas</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:0.6rem;">';
+  jugadorFreq.forEach(function(j){
+    var labelFreq = j.cadaN ? 'cada '+j.cadaN+' sesiones' : '—';
+    var pctBar = j.sesJugadas > 0 ? Math.min(100, Math.round(j.total / j.sesJugadas * 100)) : 0;
+    html += '<div style="padding:0.6rem 0.75rem;background:var(--bg-panel);border-radius:var(--radius-sm);">';
+    html += '<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.4rem;">';
+    html += '<span style="font-weight:600;flex:1;">'+j.name+'</span>';
+    html += '<span style="font-size:0.78rem;color:var(--text-muted);">'+j.total+' mano'+(j.total!==1?'s':'')+' · '+j.sesJugadas+' ses.</span>';
+    html += '<span style="font-family:\'Bebas Neue\';font-size:1rem;color:var(--gold);min-width:80px;text-align:right;">'+labelFreq+'</span>';
+    html += '</div>';
+    // Mini barras por tipo
+    html += '<div style="display:flex;gap:0.4rem;align-items:center;">';
+    if(j.royal)          html += '<span style="font-size:0.72rem;background:rgba(251,191,36,0.15);color:#fbbf24;padding:1px 6px;border-radius:10px;">👑×'+j.royal+'</span>';
+    if(j.escalera_color) html += '<span style="font-size:0.72rem;background:rgba(167,139,250,0.15);color:#a78bfa;padding:1px 6px;border-radius:10px;">🌈×'+j.escalera_color+'</span>';
+    if(j.poker)          html += '<span style="font-size:0.72rem;background:rgba(248,113,113,0.15);color:#f87171;padding:1px 6px;border-radius:10px;">4️⃣×'+j.poker+'</span>';
+    html += '<div style="flex:1;height:4px;background:var(--bg-card);border-radius:2px;overflow:hidden;margin-left:0.25rem;">';
+    html += '<div style="height:100%;width:'+pctBar+'%;background:var(--gold);opacity:0.6;border-radius:2px;"></div>';
+    html += '</div>';
+    html += '</div></div>';
+  });
+  html += '</div></div>';
 
   // Tabla ranking
   html += '<div class="card"><div class="section-title">Ranking del Club</div><div class="table-wrap"><table>';
